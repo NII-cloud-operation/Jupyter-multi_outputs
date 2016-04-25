@@ -34,7 +34,13 @@ define([
     var compare_results = function() {
         register_toolbar_menu()
 
+        var original_codecell_execute = codecell.CodeCell.prototype.execute;
         codecell.CodeCell.prototype.execute = function (stop_on_error) {
+            if (!this._metadata.leave_history) {
+                original_codecell_execute.apply(this, stop_on_error);
+                return;
+            }
+
             if (!this.kernel) {
                 console.log("Can't execute cell since kernel is not set.");
                 return;
@@ -44,7 +50,6 @@ define([
                 stop_on_error = true;
             }
 
-            this.output_area.clear_output(false, true);
             var old_msg_id = this.last_msg_id;
             if (old_msg_id) {
                 this.kernel.clear_callbacks_for_msg(old_msg_id);
