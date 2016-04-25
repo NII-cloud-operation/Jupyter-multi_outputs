@@ -71,6 +71,19 @@ define([
             this.render();
             this.events.trigger('execute.CodeCell', {cell: this});
         };
+
+        codecell.CodeCell.prototype._handle_execute_reply = function (msg) {
+            if (this._metadata.leave_history) {
+                var last_outputs = this.output_area.outputs[this.output_area.outputs.length-1];
+                if (last_outputs.output_type == 'stream') {
+                    last_outputs.name = last_outputs.name + '_' + Date.now();
+                }
+            }
+
+            this.set_input_prompt(msg.content.execution_count);
+            this.element.removeClass("running");
+            this.events.trigger('set_dirty.Notebook', {value: true});
+        };
     };
 
     return { load_ipython_extension : compare_results };
