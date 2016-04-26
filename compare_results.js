@@ -15,7 +15,7 @@ define([
                 if (value == true) {
                     // ToDo Processing in the case where the check box on
                 } else {
-                    // ToDo Processing in the case where the check box off
+                    cell.output_area.clear_output();
                 }
             },
             // getter
