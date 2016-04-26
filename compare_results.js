@@ -2,9 +2,12 @@ define([
     'base/js/namespace',
     'jquery',
     'require',
-    'notebook/js/codecell'
-],   function(IPython, $, require, codecell) {
+    'notebook/js/codecell',
+    'notebook/js/outputarea'
+],   function(IPython, $, require, codecell, outputarea) {
     "use strict";
+
+    var original_outputarea_safe_append = outputarea.OutputArea.prototype._safe_append;
 
     var register_toolbar_menu = function() {
         var init_cell_ui_callback = IPython.CellToolbar.utils.checkbox_ui_generator(
@@ -12,8 +15,15 @@ define([
             // setter
             function(cell, value) {
                 cell.metadata.leave_history = value;
+                cell.output_area.leave_history = value;
                 if (value == true) {
-                    // ToDo Processing in the case where the check box on
+                    cell.output_area.clear_output();
+
+                    var subarea = $('<div/>').addClass('output_subarea').append($('<ul/>'));
+                    var toinsert = cell.output_area.create_output_area();
+                    toinsert.append(subarea);
+
+                    original_outputarea_safe_append.apply(cell.output_area, toinsert);
                 } else {
                     cell.output_area.clear_output();
                 }
