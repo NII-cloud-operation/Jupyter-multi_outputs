@@ -9,6 +9,16 @@ define([
 
     var original_outputarea_safe_append = outputarea.OutputArea.prototype._safe_append;
 
+    outputarea.OutputArea.prototype.create_tab_area = function() {
+        this.clear_output();
+
+        var subarea = $('<div/>').addClass('output_subarea').append($('<ul/>'));
+        var toinsert = this.create_output_area();
+        toinsert.append(subarea);
+
+        original_outputarea_safe_append.apply(this, toinsert);
+    };
+
     var register_toolbar_menu = function() {
         var init_cell_ui_callback = IPython.CellToolbar.utils.checkbox_ui_generator(
             'Leave a history',
@@ -17,13 +27,7 @@ define([
                 cell.metadata.leave_history = value;
                 cell.output_area.leave_history = value;
                 if (value == true) {
-                    cell.output_area.clear_output();
-
-                    var subarea = $('<div/>').addClass('output_subarea').append($('<ul/>'));
-                    var toinsert = cell.output_area.create_output_area();
-                    toinsert.append(subarea);
-
-                    original_outputarea_safe_append.apply(cell.output_area, toinsert);
+                    cell.output_area.create_tab_area.apply(cell.output_area);
                 } else {
                     cell.output_area.clear_output();
                 }
@@ -42,7 +46,7 @@ define([
     };
 
     var compare_results = function() {
-        register_toolbar_menu()
+        register_toolbar_menu();
 
         outputarea.OutputArea.prototype._safe_append = function(toinsert) {
             if (!this.leave_history) {
@@ -103,49 +107,74 @@ define([
             this.events.trigger('execute.CodeCell', {cell: this});
         };
 
+        var output_area_convert_tab = function(output_area, json) {
+            var data_id = Date.now();
+            var output_element = $(output_area.element);
+            var subarea = output_element.children('div.output_area').children('div.output_subarea')
+            var ul = subarea.children('ul');
+
+            var that = output_area;
+            ul.append(
+                $('<li/>')
+                    .attr({ 'id': 'li-' + data_id })
+                    .append($('<button/>')
+                        .button({
+                            icons: { primary: 'ui-icon-circle-close' },
+                            text: null
+                        })
+                        .on('click', function() {
+                            that.outputs.splice(that.outputs.indexOf(json), 1);
+                            $('#li-' + data_id ).remove();
+                            $('#div-' + data_id ).remove();
+                            $(subarea).tabs('refresh');
+                        })
+                    ).append( $('<a/>').attr( { href: '#div-' + data_id }).text(json.output_type))
+            );
+
+            subarea.children('div.output_subarea').last().attr({"id": 'div-' + data_id});
+
+            $(subarea).tabs();
+            $(subarea).tabs('refresh');
+
+            var tab_length = ul.children('li').length;
+            $(subarea).tabs('option', 'active', tab_length - 1);
+       };
+
         codecell.CodeCell.prototype._handle_execute_reply = function (msg) {
             if (this._metadata.leave_history) {
-                var data_id = Date.now();
-                var output = this.output_area.outputs[this.output_area.outputs.length-1];
-                if (output.output_type == 'stream') {
-                    output.name = output.name + '_' + data_id;
+                var output_json = this.output_area.outputs[this.output_area.outputs.length-1];
+                if (output_json.output_type == 'stream') {
+                    output_json.name = output_json.name + '_' + Date.now();
                 }
 
-                var output_element = $(this.output_area.element);
-                var subarea = output_element.children('div.output_area').children('div.output_subarea')
-                var ul = subarea.children('ul');
-
-                var that = this;
-                ul.append(
-                    $('<li/>')
-                        .attr({ 'id': 'li-' + data_id })
-                        .append($('<button/>')
-                            .button({
-                                icons: { primary: 'ui-icon-circle-close' },
-                                text: null
-                            })
-                            .on('click', function() {
-                                that.output_area.outputs.splice(that.output_area.outputs.indexOf(output), 1);
-                                $('#li-' + data_id ).remove();
-                                $('#div-' + data_id ).remove();
-                                $(subarea).tabs('refresh');
-                            })
-                        ).append( $('<a/>').attr( { href: '#div-' + data_id }).text(data_id))
-                );
-
-                subarea.children('div.output_subarea').last().attr({"id": 'div-' + data_id});
-
-                $(subarea).tabs();
-                $(subarea).tabs('refresh');
-
-                var tab_length = ul.children('li').length;
-                $(subarea).tabs('option', 'active', tab_length - 1);
+                output_area_convert_tab(this.output_area, output_json);
             }
 
             this.set_input_prompt(msg.content.execution_count);
             this.element.removeClass("running");
             this.events.trigger('set_dirty.Notebook', {value: true});
         };
+
+        /**
+        * execute this extension on load
+        */
+        (function() {
+            IPython.notebook.get_cells().forEach( function(cell, index, array) {
+                if (cell._metadata.leave_history) {
+                    var outputs = cell.output_area.outputs;
+                    cell.output_area.outputs = null;
+
+                    cell.output_area.leave_history = cell._metadata.leave_history;
+
+                    cell.output_area.create_tab_area.apply(cell.output_area);
+
+                    outputs.forEach( function(json, index, array) {
+                         cell.output_area.append_output(json);
+                         output_area_convert_tab(cell.output_area, json);
+                    });
+                }
+            });
+        })();
     };
 
     return { load_ipython_extension : compare_results };
