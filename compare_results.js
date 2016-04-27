@@ -105,20 +105,35 @@ define([
 
         codecell.CodeCell.prototype._handle_execute_reply = function (msg) {
             if (this._metadata.leave_history) {
-                var now = Date.now();
-                var last_outputs = this.output_area.outputs[this.output_area.outputs.length-1];
-                if (last_outputs.output_type == 'stream') {
-                    last_outputs.name = last_outputs.name + '_' + now;
+                var data_id = Date.now();
+                var output = this.output_area.outputs[this.output_area.outputs.length-1];
+                if (output.output_type == 'stream') {
+                    output.name = output.name + '_' + data_id;
                 }
 
                 var output_element = $(this.output_area.element);
                 var subarea = output_element.children('div.output_area').children('div.output_subarea')
-
                 var ul = subarea.children('ul');
-                ul.append($('<li><a href="#' + now + '">' + now + '</a></li>'));
 
-                var last_div = subarea.find('div.output_subarea').last();
-                last_div.attr({"id": now});
+                var that = this;
+                ul.append(
+                    $('<li/>')
+                        .attr({ 'id': 'li-' + data_id })
+                        .append($('<button/>')
+                            .button({
+                                icons: { primary: 'ui-icon-circle-close' },
+                                text: null
+                            })
+                            .on('click', function() {
+                                that.output_area.outputs.splice(that.output_area.outputs.indexOf(output), 1);
+                                $('#li-' + data_id ).remove();
+                                $('#div-' + data_id ).remove();
+                                $(subarea).tabs('refresh');
+                            })
+                        ).append( $('<a/>').attr( { href: '#div-' + data_id }).text(data_id))
+                );
+
+                subarea.children('div.output_subarea').last().attr({"id": 'div-' + data_id});
 
                 $(subarea).tabs();
                 $(subarea).tabs('refresh');
