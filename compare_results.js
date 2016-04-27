@@ -44,6 +44,27 @@ define([
     var compare_results = function() {
         register_toolbar_menu()
 
+        outputarea.OutputArea.prototype._safe_append = function(toinsert) {
+            if (!this.leave_history) {
+                original_outputarea_safe_append.apply(this, toinsert);
+            } else {
+                try {
+                    var output_element = this.element;
+                    var subarea = output_element.children('div.output_area').children('div.output_subarea');
+                    subarea.append(toinsert.children('div.output_subarea'));
+                } catch(err) {
+                    console.log(err);
+                    // Create an actual output_area and output_subarea, which creates
+                    // the prompt area and the proper indentation.
+                    var toinsert = this.create_output_area();
+                    var subarea = $('<div/>').addClass('output_subarea');
+                    toinsert.append(subarea);
+                    this._append_javascript_error(err, subarea);
+                    this.element.append(toinsert);
+                }
+            }
+        }
+
         var original_codecell_execute = codecell.CodeCell.prototype.execute;
         codecell.CodeCell.prototype.execute = function (stop_on_error) {
             if (!this._metadata.leave_history) {
@@ -84,10 +105,26 @@ define([
 
         codecell.CodeCell.prototype._handle_execute_reply = function (msg) {
             if (this._metadata.leave_history) {
+                var now = Date.now();
                 var last_outputs = this.output_area.outputs[this.output_area.outputs.length-1];
                 if (last_outputs.output_type == 'stream') {
-                    last_outputs.name = last_outputs.name + '_' + Date.now();
+                    last_outputs.name = last_outputs.name + '_' + now;
                 }
+
+                var output_element = $(this.output_area.element);
+                var subarea = output_element.children('div.output_area').children('div.output_subarea')
+
+                var ul = subarea.children('ul');
+                ul.append($('<li><a href="#' + now + '">' + now + '</a></li>'));
+
+                var last_div = subarea.find('div.output_subarea').last();
+                last_div.attr({"id": now});
+
+                $(subarea).tabs();
+                $(subarea).tabs('refresh');
+
+                var tab_length = ul.children('li').length;
+                $(subarea).tabs('option', 'active', tab_length - 1);
             }
 
             this.set_input_prompt(msg.content.execution_count);
