@@ -21,11 +21,11 @@ define([
 
     var register_toolbar_menu = function() {
         var init_cell_ui_callback = IPython.CellToolbar.utils.checkbox_ui_generator(
-            'Leave a history',
+            'multi outputs',
             // setter
             function(cell, value) {
-                cell.metadata.leave_history = value;
-                cell.output_area.leave_history = value;
+                cell.metadata.multi_outputs = value;
+                cell.output_area.multi_outputs = value;
                 if (value == true) {
                     cell.output_area.create_tab_area.apply(cell.output_area);
                 } else {
@@ -35,21 +35,21 @@ define([
             // getter
             function(cell) {
                 // if init_cell is undefined, it'll be interpreted as false anyway
-                return cell.metadata.leave_history;
+                return cell.metadata.multi_outputs;
             }
         );
 
         // Register a callback to create a UI element for a cell toolbar.
         IPython.CellToolbar.register_callback('init_cell.is_init_cell', init_cell_ui_callback, 'code');
         // Register a preset of UI elements forming a cell toolbar.
-        IPython.CellToolbar.register_preset('Leave a history', ['init_cell.is_init_cell']);
+        IPython.CellToolbar.register_preset('Multi outputs', ['init_cell.is_init_cell']);
     };
 
-    var compare_results = function() {
+    var multi_outputs = function() {
         register_toolbar_menu();
 
         outputarea.OutputArea.prototype._safe_append = function(toinsert) {
-            if (!this.leave_history) {
+            if (!this.multi_outputs) {
                 original_outputarea_safe_append.apply(this, toinsert);
             } else {
                 try {
@@ -71,7 +71,7 @@ define([
 
         var original_codecell_execute = codecell.CodeCell.prototype.execute;
         codecell.CodeCell.prototype.execute = function (stop_on_error) {
-            if (!this._metadata.leave_history) {
+            if (!this._metadata.multi_outputs) {
                 original_codecell_execute.apply(this, stop_on_error);
                 return;
             }
@@ -141,7 +141,7 @@ define([
        };
 
         codecell.CodeCell.prototype._handle_execute_reply = function (msg) {
-            if (this._metadata.leave_history) {
+            if (this._metadata.multi_outputs) {
                 var output_json = this.output_area.outputs[this.output_area.outputs.length-1];
                 if (output_json.output_type == 'stream') {
                     output_json.name = output_json.name + '_' + Date.now();
@@ -160,11 +160,11 @@ define([
         */
         (function() {
             IPython.notebook.get_cells().forEach( function(cell, index, array) {
-                if (cell._metadata.leave_history) {
+                if (cell._metadata.multi_outputs) {
                     var outputs = cell.output_area.outputs;
                     cell.output_area.outputs = null;
 
-                    cell.output_area.leave_history = cell._metadata.leave_history;
+                    cell.output_area.multi_outputs = cell._metadata.multi_outputs;
 
                     cell.output_area.create_tab_area.apply(cell.output_area);
 
@@ -177,5 +177,5 @@ define([
         })();
     };
 
-    return { load_ipython_extension : compare_results };
+    return { load_ipython_extension : multi_outputs };
 });
