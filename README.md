@@ -73,6 +73,8 @@ As default behavior the "output_area" under a code cell is cleared and over writ
 1. チェックボックスをonにしたセルを実行すると、実行結果をタブ形式で表示します。
   - タブを削除することも可能です。
 
+![demo](https://raw.githubusercontent.com/NII-cloud-operation/Jupyter-multi_outputs/master/demo.gif)
+
 # Limitations and Known Issues
 
 1. タブの内容は、.ipynbファイルではこのようにセルのoutputs配列の要素として保存されます。
