@@ -183,7 +183,7 @@ define([
         /**
         * execute this extension on load
         */
-        (function() {
+        var on_notebook_loaded = function() {
             IPython.notebook.get_cells().forEach( function(cell, index, array) {
                 if (cell._metadata.multi_outputs) {
                     var outputs = cell.output_area.outputs;
@@ -199,6 +199,13 @@ define([
                     });
                 }
             });
+        };
+        (function() {
+            if(IPython.notebook.get_cells().length == 0) {
+                $([IPython.events]).on("notebook_loaded.Notebook", on_notebook_loaded);
+            }else{
+                on_notebook_loaded();
+            }
         })();
     };
 
