@@ -1,0 +1,26 @@
+div.diff-area {
+	padding: 10px;
+}
+
+.diff-button {
+	float: right;
+}
+
+.diff-selector.form-control {
+	float: right;
+	width: auto;
+}
+
+.diff-exclude.form-control {
+	float: right;
+	width: auto;
+}
+
+.ui-widget-header {
+	background: #e7e7e7;
+}
+
+.diff-search.form-control {
+	float: right;
+	width: auto;
+}
