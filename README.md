@@ -6,6 +6,11 @@ This extension enables to keep multiple results as tabs in output_area.
 You can also save/load tabbed outputs as far as this extension is enabled
 As default behavior the "output_area" under a code cell is cleared and over written in each execution.  
 
+# Feature
+
+* Add diff feature  
+* Add search feature
+
 # Setup
 
 ## Instration
@@ -75,6 +80,17 @@ As default behavior the "output_area" under a code cell is cleared and over writ
 
 ![demo](https://raw.githubusercontent.com/NII-cloud-operation/Jupyter-multi_outputs/master/demo.gif)
 
+5. Diff表示を行うためには、プルダウンからタブ番号を指定し、[Find diff]ボタンを押下してください。
+To get diff display, select the tab number from the pull down menu and press the `Find diff' button.
+
+![demo](./demo2.gif)
+
+6. 選択したアウトプット内で検索を行うには、アウトプット領域を選択し、Cmd+Fを押下してください。  
+To search within the outputarea, select the output area and press `Cmd+F'.
+
+![demo](./demo3.gif)
+
+
 # Limitations and Known Issues
 
 1. タブの内容は、.ipynbファイルではこのようにセルのoutputs配列の要素として保存されます。
@@ -123,7 +139,7 @@ As default behavior the "output_area" under a code cell is cleared and over writ
     ~~~ After that it is omitted ~~~
     ```
 
-1. stream タイプのレスポンスは正しく表示・保存が可能です。しかし、display_data, ecexution_result または errorタイプのレスポンスの場合は1つでなければなりません。  
+1. stream タイプのレスポンスは正しく表示・保存が可能です。しかし、display_data, execution_result または errorタイプのレスポンスの場合は1つでなければなりません。  
     例えば、pyplotはdisplay_dataとexecution_resultを1つずつ返しますが、この場合表示が壊れます。
 
     stream response(s) are fine.  However, the response of display_data, execution_result and error types should be only once.  

@@ -11,13 +11,23 @@ define([
     'jquery',
     'require',
     'base/js/events',
+    'base/js/dialog',
     'services/config',
     'base/js/utils',
     'notebook/js/codecell',
     'notebook/js/outputarea',
     'codemirror/lib/codemirror',
+
     'codemirror/addon/merge/merge',
-], function(IPython, $, require, events, configmod, utils, codecell, outputarea, codemirror, merge) {
+    'codemirror/addon/dialog/dialog',
+    'codemirror/addon/search/searchcursor',
+    'codemirror/addon/search/search',
+    'codemirror/addon/scroll/annotatescrollbar',
+    'codemirror/addon/search/matchesonscrollbar',
+    'codemirror/addon/search/jump-to-line',
+    'codemirror/mode/xml/xml'
+], function(IPython, $, require, events, jsdialog, configmod, utils, codecell, outputarea, codemirror, 
+    merge, dialog, searchcursor, search, annotatescrollbar, matchesonscrollbar, jumptoline, xml) {
     "use strict";
 
     var original_outputarea_safe_append = outputarea.OutputArea.prototype._safe_append;
@@ -70,6 +80,9 @@ define([
     var load_extension = function() {
         load_css('codemirror/addon/merge/merge.css');
         load_css('./custom-codemirror.css');
+
+        load_css('codemirror/addon/dialog/dialog.css');
+        load_css('codemirror/addon/search/matchesonscrollbar.css');
     };
 
     var multi_outputs = function() {
@@ -123,8 +136,11 @@ define([
                 this.set_input_prompt(null);
                 return;
             }
-            $('.tab-stream').hide();
-            $('.output_stream').hide();
+
+            $(this.output_area.element).find('.tab-stream').hide();
+            $(this.output_area.element).find('.output_stream').hide();
+            $(this.output_area.element).find('.tab-execute_result').hide();
+            $(this.output_area.element).find('.output_result').hide();
 
             var output_json = this.output_area.outputs[this.output_area.outputs.length-1];
             this.set_input_prompt('*');
@@ -171,14 +187,18 @@ define([
 
             subarea.children('div.output_subarea').last().attr({"id": 'div-' + data_id});
 
-            $('.tab-stream').show();
-            $('.output_stream').show();
+            $(output_area.element).find('.tab-stream').show();
+            $(output_area.element).find('.output_stream').show();
+            $(output_area.element).find('.tab-execute_result').show();
+            $(output_area.element).find('.output_result').show();
 
             $(subarea).tabs();
             $(subarea).tabs('refresh');
 
             var tab_length = ul.children('li').length;
             $(subarea).tabs('option', 'active', tab_length - 1);
+
+            add_codemirror(output_area.element);
 
             // Add diff-area if the tabs >= 2
             if(tab_length >= 2) {
@@ -194,6 +214,9 @@ define([
                 }
 
                 output_area_convert_tab(this.output_area, output_json);
+
+            } else {
+                add_codemirror(this.output_area.element)
             }
 
             this.set_input_prompt(msg.content.execution_count);
@@ -218,11 +241,105 @@ define([
                          cell.output_area.append_output(json);
                          output_area_convert_tab(cell.output_area, json);
                     });
+                } else {
+                    add_codemirror(cell.output_area.element);
                 }
             });
         })();
     };
-    
+
+    var add_codemirror = function(elem) {
+        var dom = $('<input type="text" style="width: 100%" class="CodeMirror-search-field"/>', {});
+
+        var preList = $(elem).find('pre');
+        if (preList.length == 0) return;
+        $(preList).each(function(index, element){
+            if ($(element).children('*').length > 0) {
+                return true; 
+            }
+            var pre = $(element).wrapInner('<textarea></textarea>').wrapInner('<form></form>');
+            var textarea = $(pre).children('form').children('textarea');
+            var cm = new CodeMirror.fromTextArea(textarea.get(0), {
+              mode: "text/html",
+              lineNumbers: false,
+              readOnly: "true",
+              extraKeys: {"Cmd-F": "find"}
+            });
+        });
+    }
+
+    codemirror.defineExtension("openDialog", function(template, callback, options) {
+        var dom = $('<input type="text" style="width: 100%" class="CodeMirror-search-field"/>', {});
+        var modal = jsdialog.modal({
+            notebook: IPython.notebook,
+            keyboard_manager: IPython.notebook.keyboard_manager,
+            title : "Search:     (Use /re/ syntax for regexp search)",
+            body : dom,
+            buttons : {
+                Search : {
+                    class: 'btn-primary CodeMirror-search-button',
+                },
+            },
+            open: function() {
+                var inputField = $(this).find('.CodeMirror-search-field').get(0);
+                $(inputField).val('');
+                $(inputField).focus();
+            }
+        });
+        var CodeMirror = codemirror;
+
+        if (!options) options = {};
+        var closed = false, me = this;
+        function close(newVal) {
+            if (typeof newVal == 'string') {
+                inp.value = newVal;
+            } else {
+                if (closed) return;
+                closed = true;
+                $(modal).modal('hide');
+                me.focus();
+            }
+        }
+
+        var inp = $(modal).find('.CodeMirror-search-field').get(0), button;
+        if (inp) {
+            $(inp).val('');
+
+            if (options.value) {
+                inp.value = options.value;
+                if (options.selectValueOnOpen !== false) {
+                    inp.select();
+                }
+            }
+
+            if (options.onInput)
+                CodeMirror.on(inp, "input", function(e) { options.onInput(e, inp.value, close);});
+            if (options.onKeyUp)
+                CodeMirror.on(inp, "keyup", function(e) {options.onKeyUp(e, inp.value, close);});
+
+            CodeMirror.on(inp, "keydown", function(e) {
+                if (options && options.onKeyDown && options.onKeyDown(e, inp.value, close)) { return; }
+                if (e.keyCode == 27 || (options.closeOnEnter !== false && e.keyCode == 13)) {
+                    inp.blur();
+                    CodeMirror.e_stop(e);
+                    close();
+                }
+                if (e.keyCode == 13) callback(inp.value, e);
+            });
+
+            if (options.closeOnBlur !== false) CodeMirror.on(inp, "blur", close);
+        } else if (button = $(modal).find('.CodeMirror-search-button').get(0)) {
+            CodeMirror.on(button, "click", function() {
+            close();
+            me.focus();
+        });
+
+        if (options.closeOnBlur !== false) CodeMirror.on(button, "blur", close);
+            button.focus();
+        }
+        return close;
+    });
+
     var add_diff_content = function(output_element, subarea, ul) {
         var cell = $(output_element).parents('div.code_cell');
         if($(cell).children('.diff-area').length) {
@@ -247,13 +364,13 @@ define([
                 .attr('class', 'diff-selector form-control')
             ).append($('<select/>')
                 .attr('class', 'diff-selector form-control')
-            ).append($('<input/>')
-                .attr('class', 'diff-exclude form-control')
-                .attr('type', 'text')
-                .attr('placeholder', 'Exclude')
+            // ).append($('<input/>')
+            //     .attr('class', 'diff-exclude form-control')
+            //     .attr('type', 'text')
+            //     .attr('placeholder', 'Exclude')
             );
 
-            IPython.notebook.keyboard_manager.register_events($('.diff-exclude'));
+            // IPython.notebook.keyboard_manager.register_events($('.diff-exclude'));
         refresh_selectbox(cell);
     }
 
@@ -302,8 +419,8 @@ define([
         cell.find('div.output_subarea').last().attr({"id": 'diff-div-' + data_id});
 
         // Get select-box value
-        value = cell.find('div.output_subarea').eq(diff_area.children('.diff-selector').eq(1).val()).text();
-        orig = cell.find('div.output_subarea').eq(diff_area.children('.diff-selector').eq(0).val()).text();
+        value = cell.find('div.output_subarea').eq(diff_area.children('.diff-selector').eq(1).val()).find('textarea').text();
+        orig = cell.find('div.output_subarea').eq(diff_area.children('.diff-selector').eq(0).val()).find('textarea').text();
         var ignore = cell.find('.diff-exclude').val();
         if(ignore !== '') {
             value = value.replace(eval(ignore), "");
@@ -339,7 +456,8 @@ define([
     }
 
     return {
-        load_ipython_extension : multi_outputs
+        load_ipython_extension : multi_outputs,
+        load_jupyter_extension : multi_outputs
     };
 
     $([IPython.events]).on('notebook_loaded.Notebook', load_extension);
