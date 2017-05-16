@@ -130,11 +130,6 @@ define([
 
         var original_codecell_execute = codecell.CodeCell.prototype.execute;
         codecell.CodeCell.prototype.execute = function (stop_on_error) {
-            if (!this._metadata.multi_outputs) {
-                original_codecell_execute.apply(this, stop_on_error);
-                return;
-            }
-
             if (!this.kernel) {
                 console.log("Can't execute cell since kernel is not set.");
                 return;
@@ -144,6 +139,9 @@ define([
                 stop_on_error = true;
             }
 
+            if (!this.metadata.multi_outputs) {
+                this.clear_output(false, true);
+            }
             var old_msg_id = this.last_msg_id;
             if (old_msg_id) {
                 this.kernel.clear_callbacks_for_msg(old_msg_id);
@@ -156,10 +154,12 @@ define([
                 return;
             }
 
-            $(this.output_area.element).find('.tab-stream').hide();
-            $(this.output_area.element).find('.output_stream').hide();
-            $(this.output_area.element).find('.tab-execute_result').hide();
-            $(this.output_area.element).find('.output_result').hide();
+            if (this.metadata.multi_outputs) {
+                $(this.output_area.element).find('.tab-stream').hide();
+                $(this.output_area.element).find('.output_stream').hide();
+                $(this.output_area.element).find('.tab-execute_result').hide();
+                $(this.output_area.element).find('.output_result').hide();
+            }
 
             var output_json = this.output_area.outputs[this.output_area.outputs.length-1];
             this.set_input_prompt('*');
