@@ -130,6 +130,12 @@ define([
 
         var original_codecell_execute = codecell.CodeCell.prototype.execute;
         codecell.CodeCell.prototype.execute = function (stop_on_error) {
+            // For Freeze extension
+            if (!(this.metadata.run_control === undefined) && this.metadata.run_control.frozen) {
+                console.log("Can't execute cell since cell is frozen.");
+                return;
+            }
+
             if (!this.kernel) {
                 console.log("Can't execute cell since kernel is not set.");
                 return;
