@@ -175,8 +175,15 @@ define([
 
             var callbacks = this.get_callbacks();
 
-            this.last_msg_id = this.kernel.execute(this.get_text(), callbacks, {silent: false, store_history: true,
-                stop_on_error : stop_on_error});
+            var options = {silent: false, store_history: true, stop_on_error : stop_on_error};
+            var data = {
+                "lc_cell_data" : {
+                    "lc_cell_meme" : this.metadata.lc_cell_meme
+                }
+            };
+            $.extend(true, options, data);
+
+            this.last_msg_id = this.kernel.execute(this.get_text(), callbacks, options);
             codecell.CodeCell.msg_cells[this.last_msg_id] = this;
             this.render();
             this.events.trigger('execute.CodeCell', {cell: this});
