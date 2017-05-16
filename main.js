@@ -30,6 +30,25 @@ define([
     merge, dialog, searchcursor, search, annotatescrollbar, matchesonscrollbar, jumptoline, xml) {
     "use strict";
 
+    function changeColor(first, cell, msg){
+        var outback = cell.output_area.prompt_overlay;
+        var inback = cell.input[0].firstChild;
+
+        if(first == true){
+            $(outback).css({"background-color":"#e0ffff"});//現在のセルを予約色に変更
+            $(inback).css({"background-color":"#e0ffff"});
+        }
+        else{
+            if (msg.content.status != "ok" && msg.content.status != "aborted") {
+                $(outback).css({"background-color": "#ffc0cb"}); //現在のセルを警告色に変更
+                $(inback).css({"background-color": "#ffc0cb"});
+            } else if (msg.content.status != "aborted") {
+                $(outback).css({"background-color": "#faf0e6"}); //現在のセルを完了色に変更
+                $(inback).css({"background-color": "#faf0e6"});
+            }
+        }
+    }
+
     var original_outputarea_safe_append = outputarea.OutputArea.prototype._safe_append;
 
     outputarea.OutputArea.prototype.create_tab_area = function() {
@@ -145,6 +164,9 @@ define([
             var output_json = this.output_area.outputs[this.output_area.outputs.length-1];
             this.set_input_prompt('*');
             this.element.addClass("running");
+
+            changeColor(true, this);
+
             var callbacks = this.get_callbacks();
 
             this.last_msg_id = this.kernel.execute(this.get_text(), callbacks, {silent: false, store_history: true,
@@ -220,6 +242,9 @@ define([
             }
 
             this.set_input_prompt(msg.content.execution_count);
+
+            changeColor(false, this, msg);
+
             this.element.removeClass("running");
             this.events.trigger('set_dirty.Notebook', {value: true});
         };
@@ -227,7 +252,7 @@ define([
         /**
         * execute this extension on load
         */
-        (function() {
+        var on_notebook_loaded = function() {
             IPython.notebook.get_cells().forEach( function(cell, index, array) {
                 if (cell._metadata.multi_outputs) {
                     var outputs = cell.output_area.outputs;
@@ -245,6 +270,13 @@ define([
                     add_codemirror(cell.output_area.element);
                 }
             });
+        };
+        (function() {
+            if(IPython.notebook.get_cells().length == 0) {
+                $([IPython.events]).on("notebook_loaded.Notebook", on_notebook_loaded);
+            }else{
+                on_notebook_loaded();
+            }
         })();
     };
 
