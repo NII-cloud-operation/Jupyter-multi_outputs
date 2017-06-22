@@ -26,7 +26,7 @@ define([
     'codemirror/addon/search/matchesonscrollbar',
     'codemirror/addon/search/jump-to-line',
     'codemirror/mode/xml/xml'
-], function(IPython, $, require, events, jsdialog, configmod, utils, codecell, outputarea, codemirror, 
+], function(IPython, $, require, events, jsdialog, configmod, utils, codecell, outputarea, codemirror,
     merge, dialog, searchcursor, search, annotatescrollbar, matchesonscrollbar, jumptoline, xml) {
     "use strict";
 
@@ -131,7 +131,7 @@ define([
         var original_codecell_execute = codecell.CodeCell.prototype.execute;
         codecell.CodeCell.prototype.execute = function (stop_on_error) {
             // For Freeze extension
-            if (!(this.metadata.run_control === undefined) && this.metadata.run_control.frozen) {
+            if (!(this.metadata.run_through_control === undefined) && this.metadata.run_through_control.frozen) {
                 console.log("Can't execute cell since cell is frozen.");
                 return;
             }
@@ -300,7 +300,7 @@ define([
         if (preList.length == 0) return;
         $(preList).each(function(index, element){
             if ($(element).children('*').length > 0) {
-                return true; 
+                return true;
             }
             var pre = $(element).wrapInner('<textarea></textarea>').wrapInner('<form></form>');
             var textarea = $(pre).children('form').children('textarea');
@@ -423,7 +423,7 @@ define([
         var diff_area = cell.children('.diff-area');
         // Add select-box option
         var $tabs = $(cell).find('li');
-        // 
+        //
         if($(diff_area).children('.diff-selector')) {
             $(diff_area).children('.diff-selector').children().remove();
         }
