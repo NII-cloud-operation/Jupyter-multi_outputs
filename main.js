@@ -310,6 +310,10 @@ define([
               readOnly: "true",
               extraKeys: {"Cmd-F": "find"}
             });
+            element.addEventListener('copy', function(ev) {
+                ev.clipboardData.setData('text/plain', cm.getSelection());
+                ev.stopPropagation();
+            });
         });
     }
 
