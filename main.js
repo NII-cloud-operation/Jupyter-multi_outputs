@@ -43,8 +43,8 @@ define([
                 $(outback).css({"background-color": "#ffc0cb"}); //現在のセルを警告色に変更
                 $(inback).css({"background-color": "#ffc0cb"});
             } else if (msg.content.status != "aborted") {
-                $(outback).css({"background-color": "#faf0e6"}); //現在のセルを完了色に変更
-                $(inback).css({"background-color": "#faf0e6"});
+                $(outback).css({"background-color": "#bcffbc"}); //現在のセルを完了色に変更
+                $(inback).css({"background-color": "#bcffbc"});
             }
         }
     }
