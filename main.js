@@ -267,20 +267,22 @@ define([
         */
         var on_notebook_loaded = function() {
             IPython.notebook.get_cells().forEach( function(cell, index, array) {
-                if (cell._metadata.multi_outputs) {
-                    var outputs = cell.output_area.outputs;
-                    cell.output_area.outputs = null;
+                if (cell instanceof codecell.CodeCell) {
+                    if (cell._metadata.multi_outputs) {
+                        var outputs = cell.output_area.outputs;
+                        cell.output_area.outputs = null;
 
-                    cell.output_area.multi_outputs = cell._metadata.multi_outputs;
+                        cell.output_area.multi_outputs = cell._metadata.multi_outputs;
 
-                    cell.output_area.create_tab_area.apply(cell.output_area);
+                        cell.output_area.create_tab_area.apply(cell.output_area);
 
-                    outputs.forEach( function(json, index, array) {
-                         cell.output_area.append_output(json);
-                         output_area_convert_tab(cell.output_area, json);
-                    });
-                } else {
-                    add_codemirror(cell.output_area.element);
+                        outputs.forEach( function(json, index, array) {
+                             cell.output_area.append_output(json);
+                             output_area_convert_tab(cell.output_area, json);
+                        });
+                    } else {
+                        add_codemirror(cell.output_area.element);
+                    }
                 }
             });
         };
