@@ -17,7 +17,6 @@ define([
     'notebook/js/codecell',
     'notebook/js/outputarea',
     'codemirror/lib/codemirror',
-
     'codemirror/addon/merge/merge',
     'codemirror/addon/dialog/dialog',
     'codemirror/addon/search/searchcursor',
@@ -31,61 +30,238 @@ define([
     "use strict";
 
     function changeColor(first, cell, msg){
-        var outback = cell.output_area.prompt_overlay;
-        var inback = cell.input[0].firstChild;
+        var outback = cell.output_area.wrapper.find('.out_prompt_bg');
+        var inback = $(cell.input[0].firstChild);
 
-        if(first == true){
-            $(outback).css({"background-color":"#e0ffff"});//現在のセルを予約色に変更
-            $(inback).css({"background-color":"#e0ffff"});
-        }
-        else{
+        cell.element.removeClass('cell-status-success');
+        cell.element.removeClass('cell-status-error');
+        cell.element.removeClass('cell-status-inqueue');
+
+        if(first == true) {
+            cell.element.addClass('cell-status-inqueue');
+        } else {
             if (msg.content.status != "ok" && msg.content.status != "aborted") {
-                $(outback).css({"background-color": "#ffc0cb"}); //現在のセルを警告色に変更
-                $(inback).css({"background-color": "#ffc0cb"});
+                cell.element.addClass('cell-status-error');
             } else if (msg.content.status != "aborted") {
-                $(outback).css({"background-color": "#bcffbc"}); //現在のセルを完了色に変更
-                $(inback).css({"background-color": "#bcffbc"});
+                cell.element.addClass('cell-status-success');
             }
         }
     }
 
-    var original_outputarea_safe_append = outputarea.OutputArea.prototype._safe_append;
+    function init_events() {
+        events.on('create.Cell', function (e, data) {
+            setTimeout(function() {
+                extend_cell(data.cell);
+            }, 0);
+        });
+    }
 
-    outputarea.OutputArea.prototype.create_tab_area = function() {
-        this.clear_output();
+    function extend_cell(cell) {
+        var pinned_outputs = cell.metadata.pinned_outputs;
+        if(pinned_outputs === undefined) {
+            pinned_outputs = [];
+        }
+        if(cell.pinned_outputs === undefined) {
+            cell.pinned_outputs = [];
+        }
 
-        var subarea = $('<div/>').addClass('output_subarea').append($('<ul/>').attr('class', 'nav nav-tabs'));
-        var toinsert = this.create_output_area();
-        toinsert.append(subarea);
-
-        original_outputarea_safe_append.apply(this, toinsert);
-    };
-
-    var register_toolbar_menu = function() {
-        var init_cell_ui_callback = IPython.CellToolbar.utils.checkbox_ui_generator(
-            'multi outputs',
-            // setter
-            function(cell, value) {
-                cell.metadata.multi_outputs = value;
-                cell.output_area.multi_outputs = value;
-                if (value == true) {
-                    cell.output_area.create_tab_area.apply(cell.output_area);
-                } else {
-                    cell.output_area.clear_output();
-                }
-            },
-            // getter
-            function(cell) {
-                // if init_cell is undefined, it'll be interpreted as false anyway
-                return cell.metadata.multi_outputs;
+        if(pinned_outputs.length > 0) {
+            create_multi_output_tabs(cell)
+            for(var i=0; i<pinned_outputs.length; ++i) {
+                add_tab_outputarea(cell, pinned_outputs[i]);
             }
-        );
+        }
 
-        // Register a callback to create a UI element for a cell toolbar.
-        IPython.CellToolbar.register_callback('multi_output.is_init_cell', init_cell_ui_callback, 'code');
-        // Register a preset of UI elements forming a cell toolbar.
-        IPython.CellToolbar.register_preset('Multi outputs', ['multi_output.is_init_cell']);
-    };
+        extend_prompt(cell, cell.output_area);
+        create_pin_button(cell, cell.output_area);
+        update_pin_button_status(cell.output_area);
+    }
+
+    function create_multi_output_tabs(cell)
+    {
+        var container = $('<div/>')
+            .addClass('multi-output-container');
+        var tabbar = $('<div/>')
+            .addClass('multi-output-tabs')
+            .addClass('output_area')
+            .append($('<div/>')
+                    .addClass('out_prompt_bg').addClass('prompt'))
+            .appendTo(container);
+        var tabs = $('<ul/>')
+            .addClass('nav')
+            .addClass('nav-tabs')
+            .appendTo(tabbar);
+
+        container.insertAfter(cell.element.find('.input'));
+
+        tabs.append(
+            $('<li/>')
+                .attr('id', 'tab-output-current')
+                .append(
+                    $('<a/>').attr( { href: '#output-current'}).text('*')))
+
+        var tab_output_wrapper = $('<div/>')
+            .addClass('multi-output-wrapper')
+            .attr('id', 'output-current');
+
+        tab_output_wrapper.insertAfter(cell.element.find('div.multi-output-tabs'));
+        cell.output_area.wrapper.appendTo(tab_output_wrapper);
+
+        container.tabs();
+    }
+
+    function remove_multi_output_tabs(cell)
+    {
+        var container = cell.element.find('.multi-output-container');
+
+        container.tabs("destroy");
+        cell.output_area.wrapper.insertAfter(cell.element.find('.input'));
+        container.remove();
+    }
+
+    function add_tab_outputarea(cell, pinned_output_data)
+    {
+        var pinned_output_element = $('<div></div>')
+        var pinned_outputarea = new outputarea.OutputArea({
+            config: cell.config,
+            selector: pinned_output_element,
+            prompt_area: true,
+            events: cell.events,
+            keyboard_manager: cell.keyboard_manager,
+        });
+        var pinned_output = {
+            execution_count: pinned_output_data.execution_count,
+            outputarea: pinned_outputarea,
+            data: pinned_output_data
+        }
+
+        var tab_container = cell.element.find('div.multi-output-container');
+        var tab_id = 'output-' + Date.now();
+        var tab_wrapper = $('<div/>')
+            .addClass('multi-output-wrapper')
+            .attr('id', tab_id)
+            .append(pinned_output_element)
+            .appendTo(tab_container);
+
+        cell.pinned_outputs.push(pinned_outputarea);
+
+        pinned_outputarea.trusted = cell.metadata.trusted || false;
+        pinned_outputarea.fromJSON(pinned_output_data.outputs);
+
+        extend_prompt(cell, pinned_outputarea);
+
+        var tab = create_tab(cell, pinned_output, tab_id);
+        tab.insertAfter(cell.element.find('div.multi-output-tabs ul.nav-tabs li#tab-output-current'));
+
+        setTimeout(function() {
+            tab_container.tabs('refresh');
+        }, 0);
+
+        return tab;
+    }
+
+    function create_tab(cell, pinned_output, id)
+    {
+        var title = 'Out [' + pinned_output.execution_count + ']';
+        var tab = $('<li/>')
+            .attr('id', 'tab-' + id)
+            .append($('<button/>')
+                    .button({
+                        icons: { primary: 'ui-icon-circle-close' },
+                        text: null
+                    })
+                    .on('click', function() {
+                        remove_pinned_output(cell, pinned_output, id);
+                    })).append($('<a/>').attr( { href: '#' + id }).text(title))
+        return tab;
+    }
+
+    function extend_prompt(cell, output_area)
+    {
+        $('<div/>')
+            .addClass('out_prompt_bg')
+            .addClass('prompt')
+            .appendTo(output_area.wrapper);
+    }
+
+    function create_pin_button(cell, output_area)
+    {
+        var container = $('<div/>')
+                    .addClass('multi-outputs-ui')
+                    .appendTo(output_area.wrapper.find('.out_prompt_overlay'));
+
+        var btn = $('<div/>')
+                    .addClass('buttons')
+                    .append('<button class="btn btn-default"/>')
+                    .appendTo(container);
+
+        var clickable = btn.find('button');
+        $('<i class="fa fa-fw fa-thumb-tack"/>').appendTo(clickable);
+        clickable.on('click', function (event) {
+            pin_output(cell);
+        });
+    }
+
+    function update_pin_button_status(output_area) {
+        if(output_area.outputs.length == 0) {
+            output_area.wrapper.find('.multi-outputs-ui').css('display', 'none');
+        } else {
+            output_area.wrapper.find('.multi-outputs-ui').css('display', '');
+        }
+    }
+
+    function pin_output(cell) {
+        if(cell.output_area.outputs.length == 0) {
+            return;
+        }
+
+        if(cell.input_prompt_number === '*') {
+            return;
+        }
+
+        if(cell.metadata.pinned_outputs === undefined) {
+            cell.metadata.pinned_outputs = [];
+        }
+
+        var outputs_json = cell.output_area.toJSON();
+        var pinned_output = {
+            'execution_count': cell.input_prompt_number,
+            'outputs' : outputs_json
+        }
+        cell.metadata.pinned_outputs.push(pinned_output);
+
+        cell.clear_output();
+
+        if(cell.pinned_outputs.length == 0) {
+            create_multi_output_tabs(cell);
+        }
+        var tab = add_tab_outputarea(cell, pinned_output);
+        var anchor = tab.find('a');
+        setTimeout(function() {
+            anchor.click();
+        }, 0);
+
+        update_pin_button_status(cell.output_area);
+
+        cell.events.trigger('set_dirty.Notebook', {value: true});
+    }
+
+    function remove_pinned_output(cell, pinned_output, tab_id) {
+        cell.pinned_outputs.splice(
+            cell.pinned_outputs.indexOf(pinned_output), 1);
+        cell.metadata.pinned_outputs.splice(
+            cell.metadata.pinned_outputs.indexOf(pinned_output.data), 1);
+
+        cell.element.find('ul > li#tab-' + tab_id).remove();
+        cell.element.find('div#' + tab_id ).remove();
+        cell.element.find('div.multi-output-container').tabs('refresh');
+
+        if(cell.pinned_outputs.length == 0) {
+            remove_multi_output_tabs(cell);
+        }
+
+        cell.events.trigger('set_dirty.Notebook', {value: true});
+    }
 
     /* Load additional CSS */
     var load_css = function (name) {
@@ -97,6 +273,7 @@ define([
     };
 
     var load_extension = function() {
+        load_css('./main.css');
         load_css('codemirror/addon/merge/merge.css');
         load_css('./custom-codemirror.css');
 
@@ -104,29 +281,50 @@ define([
         load_css('codemirror/addon/search/matchesonscrollbar.css');
     };
 
-    var multi_outputs = function() {
-        register_toolbar_menu();
-        load_extension();
-        outputarea.OutputArea.prototype._safe_append = function(toinsert) {
-            if (!this.multi_outputs) {
-                original_outputarea_safe_append.apply(this, toinsert);
-            } else {
-                try {
-                    var output_element = this.element;
-                    var subarea = output_element.children('div.output_area').children('div.output_subarea');
-                    subarea.append(toinsert.children('div.output_subarea'));
-                } catch(err) {
-                    console.log(err);
-                    // Create an actual output_area and output_subarea, which creates
-                    // the prompt area and the proper indentation.
-                    var toinsert = this.create_output_area();
-                    var subarea = $('<div/>').addClass('output_subarea');
-                    toinsert.append(subarea);
-                    this._append_javascript_error(err, subarea);
-                    this.element.append(toinsert);
-                }
+    function patch_CodeCell_get_callbacks() {
+        console.log('[multi_outputs] patching CodeCell.prototype.get_callbacks');
+        var previous_get_callbacks = codecell.CodeCell.prototype.get_callbacks;
+        codecell.CodeCell.prototype.get_callbacks = function() {
+            var that = this;
+            var callbacks = previous_get_callbacks.apply(this, arguments);
+            var prev_iopub_output_callback = callbacks.iopub.output;
+            callbacks.iopub.output = function(msg) {
+                prev_iopub_output_callback(msg);
+                update_pin_button_status(that.output_area);
             }
+            var prev_iopub_clear_output_callback = callbacks.iopub.clear_output;
+            callbacks.iopub.clear_output = function(msg) {
+                prev_iopub_clear_output_callback(msg);
+                update_pin_button_status(that.output_area);
+            }
+            return callbacks;
+        };
+    }
+
+    function patch_CodeCell_clear_output() {
+        console.log('[multi_outputs] patching CodeCell.prototype.clear_output');
+        var previous_clear_output = codecell.CodeCell.prototype.clear_output;
+        codecell.CodeCell.prototype.clear_output = function(wait) {
+            previous_clear_output.apply(this, arguments);
+            update_pin_button_status(this.output_area);
         }
+    }
+
+    function patch_CodeCell_handle_execute_reply() {
+        console.log('[multi_outputs] patching CodeCell.prototype._handle_execute_reply');
+        var previous_handle_execute_reply = codecell.CodeCell.prototype._handle_execute_reply;
+        codecell.CodeCell.prototype._handle_execute_reply = function (msg) {
+            changeColor(false, this, msg);
+            previous_handle_execute_reply.apply(this, arguments);
+        };
+    }
+
+    var multi_outputs = function() {
+        load_extension();
+        patch_CodeCell_get_callbacks();
+        patch_CodeCell_clear_output();
+        patch_CodeCell_handle_execute_reply();
+        init_events();
 
         var original_codecell_execute = codecell.CodeCell.prototype.execute;
         codecell.CodeCell.prototype.execute = function (stop_on_error) {
@@ -145,9 +343,7 @@ define([
                 stop_on_error = true;
             }
 
-            if (!this.metadata.multi_outputs) {
-                this.clear_output(false, true);
-            }
+            this.clear_output(false, true);
             var old_msg_id = this.last_msg_id;
             if (old_msg_id) {
                 this.kernel.clear_callbacks_for_msg(old_msg_id);
@@ -160,18 +356,13 @@ define([
                 return;
             }
 
-            if (this.metadata.multi_outputs) {
-                $(this.output_area.element).find('.tab-stream').hide();
-                $(this.output_area.element).find('.output_stream').hide();
-                $(this.output_area.element).find('.tab-execute_result').hide();
-                $(this.output_area.element).find('.output_result').hide();
-            }
-
             var output_json = this.output_area.outputs[this.output_area.outputs.length-1];
             this.set_input_prompt('*');
             this.element.addClass("running");
 
             changeColor(true, this);
+
+            this.element.find('.multi-output-tabs li#tab-output-current a').click();
 
             var callbacks = this.get_callbacks();
 
@@ -241,48 +432,13 @@ define([
             }
         };
 
-        codecell.CodeCell.prototype._handle_execute_reply = function (msg) {
-            if (this._metadata.multi_outputs) {
-                var output_json = this.output_area.outputs[this.output_area.outputs.length-1];
-                if (output_json.output_type == 'stream') {
-                    output_json.name = output_json.name + '_' + Date.now();
-                }
-
-                output_area_convert_tab(this.output_area, output_json);
-
-            } else {
-                add_codemirror(this.output_area.element)
-            }
-
-            this.set_input_prompt(msg.content.execution_count);
-
-            changeColor(false, this, msg);
-
-            this.element.removeClass("running");
-            this.events.trigger('set_dirty.Notebook', {value: true});
-        };
-
         /**
         * execute this extension on load
         */
         var on_notebook_loaded = function() {
             IPython.notebook.get_cells().forEach( function(cell, index, array) {
                 if (cell instanceof codecell.CodeCell) {
-                    if (cell._metadata.multi_outputs) {
-                        var outputs = cell.output_area.outputs;
-                        cell.output_area.outputs = null;
-
-                        cell.output_area.multi_outputs = cell._metadata.multi_outputs;
-
-                        cell.output_area.create_tab_area.apply(cell.output_area);
-
-                        outputs.forEach( function(json, index, array) {
-                             cell.output_area.append_output(json);
-                             output_area_convert_tab(cell.output_area, json);
-                        });
-                    } else {
-                        add_codemirror(cell.output_area.element);
-                    }
+                    extend_cell(cell);
                 }
             });
         };
