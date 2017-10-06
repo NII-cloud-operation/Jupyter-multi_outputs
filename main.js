@@ -230,8 +230,6 @@ define([
         }
         cell.metadata.pinned_outputs.push(pinned_output);
 
-        cell.clear_output();
-
         if(cell.pinned_outputs.length == 0) {
             create_multi_output_tabs(cell);
         }
