@@ -18,15 +18,11 @@ define([
     'notebook/js/outputarea',
     'codemirror/lib/codemirror',
     'codemirror/addon/merge/merge',
-    'codemirror/addon/dialog/dialog',
     'codemirror/addon/search/searchcursor',
-    'codemirror/addon/search/search',
     'codemirror/addon/scroll/annotatescrollbar',
-    'codemirror/addon/search/matchesonscrollbar',
-    'codemirror/addon/search/jump-to-line',
-    'codemirror/mode/xml/xml'
+    'codemirror/addon/search/matchesonscrollbar'
 ], function(IPython, $, require, events, jsdialog, configmod, utils, codecell, outputarea, codemirror,
-    merge, dialog, searchcursor, search, annotatescrollbar, matchesonscrollbar, jumptoline, xml) {
+    merge, searchcursor, annotatescrollbar, matchesonscrollbar) {
     "use strict";
 
     function changeColor(first, cell, msg){
@@ -150,6 +146,8 @@ define([
 
         extend_prompt(cell, pinned_outputarea);
 
+        create_diff_button(cell, pinned_output);
+
         var tab = create_tab(cell, pinned_output, tab_id);
         tab.insertAfter(cell.element.find('div.multi-output-tabs ul.nav-tabs li#tab-output-current'));
 
@@ -199,6 +197,26 @@ define([
         $('<i class="fa fa-fw fa-thumb-tack"/>').appendTo(clickable);
         clickable.on('click', function (event) {
             pin_output(cell);
+            return false;
+        });
+    }
+
+    function create_diff_button(cell, pinned_output) {
+        var output_area = pinned_output.outputarea;
+        var container = $('<div/>')
+                    .addClass('multi-outputs-diff-ui')
+                    .appendTo(output_area.wrapper.find('.out_prompt_overlay'));
+
+        var btn = $('<div/>')
+                    .addClass('buttons')
+                    .append('<button class="btn btn-default"/>')
+                    .appendTo(container);
+
+        var clickable = btn.find('button');
+        $('<i class="fa fa-fw fa-exchange"/>').appendTo(clickable);
+        clickable.on('click', function (event) {
+            show_diff_dialog(cell, pinned_output);
+            return false;
         });
     }
 
@@ -261,6 +279,108 @@ define([
         cell.events.trigger('set_dirty.Notebook', {value: true});
     }
 
+    function get_output_text(output_area) {
+        var outputs = output_area.outputs;
+        var texts = new Array();
+        for(var i=0; i < outputs.length; ++i) {
+            if (outputs[i].data && outputs[i].data['text/plain']) {
+                texts.push(outputs[i].data['text/plain']);
+            } else if (outputs[i].output_type == 'stream') {
+                texts.push(outputs[i].text);
+            } else if (outputs[i].output_type == 'error') {
+                texts.push(outputs[i].traceback.join('\n'));
+            }
+        }
+        return texts.join('\n');
+    }
+
+    function mark_text(editor, query, searchCursor)
+    {
+        var searchCursor = editor.getSearchCursor(query, 0, false);
+
+        var marks = editor.getAllMarks();
+        for (var i=0; i<marks.length; ++i) {
+            marks[i].clear();
+        }
+        if(editor.scrollBarAnnotation) {
+            editor.scrollBarAnnotation.clear();
+        }
+
+        var options = {className: 'search-highlight'};
+        while(searchCursor.findNext()) {
+            editor.markText(
+                searchCursor.from(), searchCursor.to(),
+                options);
+        }
+        editor.scrollBarAnnotation = editor.showMatchesOnScrollbar(query, false, options);
+    }
+
+    function show_diff_dialog(cell, pinned_output) {
+        var value = get_output_text(cell.output_area);
+        var orig = get_output_text(pinned_output.outputarea);
+        if(value === "" && orig === "") {
+            return;
+        }
+
+        var number = cell.input_prompt_number;
+        var orig_number = pinned_output.execution_count;
+
+        var dv;
+        var content = $('<div/>').addClass('multi-outputs-diff');
+        var searchbar = $('<div/>').addClass('multi-outputs-search-bar');
+        $('<span/>').addClass('label').text('Search').appendTo(searchbar);
+        var input = $('<input/>').attr('type', 'text').appendTo(searchbar);
+        input.keydown(function(event, ui) {
+            event.stopPropagation();
+            return true;
+        });
+        input.change(function(event, ui) {
+            var text = input.val();
+            mark_text(dv.edit, text);
+            mark_text(dv.right.orig, text);
+        });
+
+        var dialogResized = function (event, ui) {
+            content.css('width', '');
+            var dialog = content.parent();
+            var titlebar = dialog.find('.ui-dialog-titlebar');
+            var height = dialog.height() - titlebar.outerHeight();
+            content.css('height', height + 'px');
+            var merge = content.find('.CodeMirror-merge');
+            var mergeHeight = content.height() - searchbar.outerHeight();
+            merge.css('height', mergeHeight + 'px');
+            dv.edit.setSize(null, merge.height() + 'px');
+            dv.right.orig.setSize(null, merge.height() + 'px');
+            dv.right.forceUpdate();
+        }
+
+        content.dialog({
+            open: function(event, ui) {
+                dv = codemirror.MergeView(content.get(0), {
+                    value: value,
+                    orig: orig,
+                    lineNumbers: true,
+                    mode: "text/plain",
+                    highlightDifferences: true,
+                    revertButtons: false,
+                    lineWrapping: true
+                });
+                searchbar.appendTo(content);
+                dialogResized();
+            },
+            close: function(event, ui) {
+                content.dialog("destroy");
+            },
+            resize: dialogResized,
+            resizeStop: dialogResized,
+            title: "Diff: Out[" + number + "] <- Out[" + orig_number + "]",
+            minWidth: 500,
+            minHeight: 400,
+            width: 500,
+            height: 400,
+        });
+    }
+
     /* Load additional CSS */
     var load_css = function (name) {
         var link = document.createElement("link");
@@ -273,9 +393,6 @@ define([
     var load_extension = function() {
         load_css('./main.css');
         load_css('codemirror/addon/merge/merge.css');
-        load_css('./custom-codemirror.css');
-
-        load_css('codemirror/addon/dialog/dialog.css');
         load_css('codemirror/addon/search/matchesonscrollbar.css');
     };
 
@@ -378,58 +495,6 @@ define([
             this.events.trigger('execute.CodeCell', {cell: this});
         };
 
-        var output_area_convert_tab = function(output_area, json) {
-            var data_id = Date.now();
-            var output_element = $(output_area.element);
-            var subarea = output_element.children('div.output_area').children('div.output_subarea')
-            var ul = subarea.children('ul');
-            var tab_name;
-            if (json.output_type) {
-                tab_name = 'tab-' + json.output_type; //tab-stream, tab-text, ...
-            }
-
-            var that = output_area;
-            ul.append(
-                $('<li/>')
-                    .attr({ 'id': 'li-' + data_id })
-                    .attr({ 'class':tab_name})
-                    .append($('<button/>')
-                        .button({
-                            icons: { primary: 'ui-icon-circle-close' },
-                            text: null
-                        })
-                        .on('click', function() {
-                            that.outputs.splice(that.outputs.indexOf(json), 1);
-                            $('#li-' + data_id ).remove();
-                            $('#div-' + data_id ).remove();
-                            $(subarea).tabs('refresh');
-
-                            refresh_selectbox($(output_element).parents('div.code_cell'));
-                        })
-                    ).append( $('<a/>').attr( { href: '#div-' + data_id }).text(json.output_type))
-            );
-
-            subarea.children('div.output_subarea').last().attr({"id": 'div-' + data_id});
-
-            $(output_area.element).find('.tab-stream').show();
-            $(output_area.element).find('.output_stream').show();
-            $(output_area.element).find('.tab-execute_result').show();
-            $(output_area.element).find('.output_result').show();
-
-            $(subarea).tabs();
-            $(subarea).tabs('refresh');
-
-            var tab_length = ul.children('li').length;
-            $(subarea).tabs('option', 'active', tab_length - 1);
-
-            add_codemirror(output_area.element);
-
-            // Add diff-area if the tabs >= 2
-            if(tab_length >= 2) {
-                add_diff_content(output_element, subarea, ul, that);
-            }
-        };
-
         /**
         * execute this extension on load
         */
@@ -448,217 +513,6 @@ define([
             }
         })();
     };
-
-    var add_codemirror = function(elem) {
-        var dom = $('<input type="text" style="width: 100%" class="CodeMirror-search-field"/>', {});
-
-        var preList = $(elem).find('pre');
-        if (preList.length == 0) return;
-        $(preList).each(function(index, element){
-            if ($(element).children('*').length > 0) {
-                return true;
-            }
-            var pre = $(element).wrapInner('<textarea></textarea>').wrapInner('<form></form>');
-            var textarea = $(pre).children('form').children('textarea');
-            var cm = new CodeMirror.fromTextArea(textarea.get(0), {
-              mode: "text/html",
-              lineNumbers: false,
-              readOnly: "true",
-              extraKeys: {"Cmd-F": "find"}
-            });
-            element.addEventListener('copy', function(ev) {
-                ev.clipboardData.setData('text/plain', cm.getSelection());
-                ev.stopPropagation();
-            });
-        });
-    }
-
-    codemirror.defineExtension("openDialog", function(template, callback, options) {
-        var dom = $('<input type="text" style="width: 100%" class="CodeMirror-search-field"/>', {});
-        var modal = jsdialog.modal({
-            notebook: IPython.notebook,
-            keyboard_manager: IPython.notebook.keyboard_manager,
-            title : "Search:     (Use /re/ syntax for regexp search)",
-            body : dom,
-            buttons : {
-                Search : {
-                    class: 'btn-primary CodeMirror-search-button',
-                },
-            },
-            open: function() {
-                var inputField = $(this).find('.CodeMirror-search-field').get(0);
-                $(inputField).val('');
-                $(inputField).focus();
-            }
-        });
-        var CodeMirror = codemirror;
-
-        if (!options) options = {};
-        var closed = false, me = this;
-        function close(newVal) {
-            if (typeof newVal == 'string') {
-                inp.value = newVal;
-            } else {
-                if (closed) return;
-                closed = true;
-                $(modal).modal('hide');
-                me.focus();
-            }
-        }
-
-        var inp = $(modal).find('.CodeMirror-search-field').get(0), button;
-        if (inp) {
-            $(inp).val('');
-
-            if (options.value) {
-                inp.value = options.value;
-                if (options.selectValueOnOpen !== false) {
-                    inp.select();
-                }
-            }
-
-            if (options.onInput)
-                CodeMirror.on(inp, "input", function(e) { options.onInput(e, inp.value, close);});
-            if (options.onKeyUp)
-                CodeMirror.on(inp, "keyup", function(e) {options.onKeyUp(e, inp.value, close);});
-
-            CodeMirror.on(inp, "keydown", function(e) {
-                if (options && options.onKeyDown && options.onKeyDown(e, inp.value, close)) { return; }
-                if (e.keyCode == 27 || (options.closeOnEnter !== false && e.keyCode == 13)) {
-                    inp.blur();
-                    CodeMirror.e_stop(e);
-                    close();
-                }
-                if (e.keyCode == 13) callback(inp.value, e);
-            });
-
-            if (options.closeOnBlur !== false) CodeMirror.on(inp, "blur", close);
-        } else if (button = $(modal).find('.CodeMirror-search-button').get(0)) {
-            CodeMirror.on(button, "click", function() {
-            close();
-            me.focus();
-        });
-
-        if (options.closeOnBlur !== false) CodeMirror.on(button, "blur", close);
-            button.focus();
-        }
-        return close;
-    });
-
-    var add_diff_content = function(output_element, subarea, ul) {
-        var cell = $(output_element).parents('div.code_cell');
-        if($(cell).children('.diff-area').length) {
-            refresh_selectbox(cell);
-            return;
-        }
-        // Add diff area
-        var diff_area = $('<div></div>')
-            .attr('class', 'diff-area')
-            .insertAfter(
-                $(cell.children('.input'))
-            );
-        // Add diff button
-        $(diff_area)
-            .append($('<button/>')
-                .attr('class', 'btn btn-default diff-button')
-                .text('Find diff')
-                .on('click', function() {
-                    output_diff_area(cell, subarea, ul, diff_area);
-                })
-            ).append($('<select/>')
-                .attr('class', 'diff-selector form-control')
-            ).append($('<select/>')
-                .attr('class', 'diff-selector form-control')
-            // ).append($('<input/>')
-            //     .attr('class', 'diff-exclude form-control')
-            //     .attr('type', 'text')
-            //     .attr('placeholder', 'Exclude')
-            );
-
-            // IPython.notebook.keyboard_manager.register_events($('.diff-exclude'));
-        refresh_selectbox(cell);
-    }
-
-    var refresh_selectbox = function(cell) {
-        var diff_area = cell.children('.diff-area');
-        // Add select-box option
-        var $tabs = $(cell).find('li');
-        //
-        if($(diff_area).children('.diff-selector')) {
-            $(diff_area).children('.diff-selector').children().remove();
-        }
-        var options = $.map($($tabs), function (name, value) {
-            var isSelected = false;
-            var text = (value + 1) + 'th';
-            var $option = $('<option>', { value: value+1, text: text, selected: isSelected });
-            return $option;
-        });
-        $(diff_area).children('.diff-selector').append(options);
-    }
-
-    var output_diff_area = function(cell, subarea, ul, diff_area) {
-        var data_id = Date.now();
-        // Add diff-result area
-        $('<div></div>')
-            .attr('class', 'output_subarea')
-            .text('hoge')
-            .insertAfter(
-                cell.find('div.output_subarea').last()
-            );
-        // tab
-        ul.append(
-            $('<li/>')
-                .attr({ 'id': 'diff-li-' + data_id })
-                .append($('<button/>')
-                    .button({
-                        icons: { primary: 'ui-icon-circle-close' },
-                        text: null
-                    })
-                    .on('click', function() {
-                        $('#diff-li-' + data_id ).remove();
-                        $('#diff-div-' + data_id ).remove();
-                        $(subarea).tabs('refresh');
-                    })
-                ).append( $('<a/>').attr( { href: '#diff-div-' + data_id }).text('diff'))
-        );
-        cell.find('div.output_subarea').last().attr({"id": 'diff-div-' + data_id});
-
-        // Get select-box value
-        value = cell.find('div.output_subarea').eq(diff_area.children('.diff-selector').eq(1).val()).find('textarea').text();
-        orig = cell.find('div.output_subarea').eq(diff_area.children('.diff-selector').eq(0).val()).find('textarea').text();
-        var ignore = cell.find('.diff-exclude').val();
-        if(ignore !== '') {
-            value = value.replace(eval(ignore), "");
-            orig = orig.replace(eval(ignore), "");
-        }
-        // Display diff
-        initUI(2, 'diff-div-' + data_id );
-
-        $(subarea).tabs();
-        $(subarea).tabs('refresh');
-
-        var tab_length = ul.children('li').length;
-        $(subarea).tabs('option', 'active', tab_length - 1);
-    }
-
-    // Display diff
-    var value, orig, dv, hilight= true;
-    function initUI(panes, target_id) {
-        var target = document.getElementById(target_id);
-        if (value == null) return;
-        target.innerHTML = "";
-        dv = codemirror.MergeView(target, {
-            value: value,
-            orig: orig,
-            lineNumbers: true,
-            mode: "text/html",
-            highlightDifferences: hilight
-        });
-    }
-
-    function toggleDifferences() {
-        dv.setShowDifferences(hilight = !hilight);
-    }
 
     return {
         load_ipython_extension : multi_outputs,

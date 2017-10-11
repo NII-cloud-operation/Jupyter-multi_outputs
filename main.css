@@ -16,27 +16,27 @@
     flex: 1;
 }
 
-.multi-outputs-ui {
+.multi-outputs-ui,.multi-outputs-diff-ui {
     text-align: left;
     padding-top: 2px;
     display: block;
 }
 
-.multi-outputs-ui .buttons {
+.multi-outputs-ui .buttons,.multi-outputs-diff-ui .buttons {
     display: inline-block;
 }
 
-.multi-outputs-ui .btn {
+.multi-outputs-ui .btn,.multi-outputs-diff-ui .btn {
     padding: 0px;
     font-size: 90%;
 }
 
-.multi-outputs-ui .btn-default {
+.multi-outputs-ui .btn-default,.multi-outputs-diff-ui .btn-default {
     background-color: transparent;
     border-color: transparent;
 }
 
-.multi-outputs-ui .btn-default:hover {
+.multi-outputs-ui .btn-default:hover,.multi-outputs-diff-ui .btn-default:hover {
     background-color: #e6e6e6;
     border-color: #adadad;
 }
@@ -102,4 +102,33 @@
 
 .multi-output-tabs li.ui-state-active a {
     color: black;
+}
+
+.multi-outputs-diff.ui-dialog-content {
+    overflow: hidden;
+}
+
+.multi-outputs-diff .multi-outputs-search-bar {
+    margin: 1px;
+    padding: 1px;
+    width: 100%;
+}
+
+.multi-outputs-diff .multi-outputs-search-bar .label {
+    color: black;
+    font-weight: bold;
+    font-size: 10px;
+}
+
+.multi-outputs-diff .multi-outputs-search-bar input {
+    font-size: 10px;
+    width: 250px;
+}
+
+.multi-outputs-diff .search-highlight {
+    background-color: #fe3;
+}
+
+.ui-widget-header {
+    background: #e7e7e7;
 }
