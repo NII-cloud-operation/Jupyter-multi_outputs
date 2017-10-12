@@ -6,3 +6,11 @@ Link: README.md
 Icon: icon.png
 Main: main.js
 Compatibility: 4.x 5.x
+Parameters:
+- name: MultiOutputs.max_num_of_pinned_outputs
+  description: |
+    Maximum number of pinned output tabs
+  input_type: number
+  default: 5
+  step: 1
+  min: 1
