@@ -25,6 +25,14 @@ define([
     merge, searchcursor, annotatescrollbar, matchesonscrollbar) {
     "use strict";
 
+    var mod_name = 'MultiOutputs';
+    var log_prefix = '[' + mod_name + ']';
+
+    // defaults, overridden by server's config
+    var options = {
+        max_num_of_pinned_outputs: 5
+    };
+
     function changeColor(first, cell, msg){
         var outback = cell.output_area.wrapper.find('.out_prompt_bg');
         var inback = $(cell.input[0].firstChild);
@@ -139,6 +147,7 @@ define([
             .append(pinned_output_element)
             .appendTo(tab_container);
 
+        pinned_outputarea.tab_id = tab_id;
         cell.pinned_outputs.push(pinned_outputarea);
 
         pinned_outputarea.trusted = cell.metadata.trusted || false;
@@ -169,7 +178,7 @@ define([
                         text: null
                     })
                     .on('click', function() {
-                        remove_pinned_output(cell, pinned_output, id);
+                        remove_pinned_output(cell, pinned_output);
                     })).append($('<a/>').attr( { href: '#' + id }).text(title))
         return tab;
     }
@@ -257,17 +266,31 @@ define([
             anchor.click();
         }, 0);
 
+        remove_old_pinned_outputs(cell);
+
         update_pin_button_status(cell.output_area);
 
         cell.events.trigger('set_dirty.Notebook', {value: true});
     }
 
-    function remove_pinned_output(cell, pinned_output, tab_id) {
-        cell.pinned_outputs.splice(
-            cell.pinned_outputs.indexOf(pinned_output), 1);
-        cell.metadata.pinned_outputs.splice(
-            cell.metadata.pinned_outputs.indexOf(pinned_output.data), 1);
+    function remove_old_pinned_outputs(cell) {
+        var pinned_output_areas = cell.pinned_outputs;
 
+        var max = Math.max(options.max_num_of_pinned_outputs, 1);
+        while(pinned_output_areas.length > max) {
+            remove_pinned_output(cell,
+                                 pinned_output_areas[0],
+                                 pinned_output_areas[0].tab_id)
+        }
+    }
+
+    function remove_pinned_output(cell, pinned_output_area) {
+        cell.pinned_outputs.splice(
+            cell.pinned_outputs.indexOf(pinned_output_area), 1);
+        cell.metadata.pinned_outputs.splice(
+            cell.metadata.pinned_outputs.indexOf(pinned_output_area.data), 1);
+
+        var tab_id = pinned_output_area.tab_id;
         cell.element.find('ul > li#tab-' + tab_id).remove();
         cell.element.find('div#' + tab_id ).remove();
         cell.element.find('div.multi-output-container').tabs('refresh');
@@ -505,13 +528,22 @@ define([
                 }
             });
         };
-        (function() {
-            if(IPython.notebook.get_cells().length == 0) {
-                $([IPython.events]).on("notebook_loaded.Notebook", on_notebook_loaded);
-            }else{
-                on_notebook_loaded();
-            }
-        })();
+
+        Jupyter.notebook.config.loaded.then(function on_config_loaded () {
+            $.extend(true, options, Jupyter.notebook.config.data[mod_name]);
+        }, function on_config_load_error (reason) {
+            console.warn(log_prefix, 'Using defaults after error loading config:', reason);
+        }).then(function do_stuff_with_config () {
+            (function() {
+                if(IPython.notebook.get_cells().length == 0) {
+                    $([IPython.events]).on("notebook_loaded.Notebook", on_notebook_loaded);
+                }else{
+                    on_notebook_loaded();
+                }
+            })();
+        }).catch(function on_error (reason) {
+            console.error(log_prefix, 'Error:', reason);
+        });
     };
 
     return {
