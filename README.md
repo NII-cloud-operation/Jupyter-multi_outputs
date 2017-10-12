@@ -11,65 +11,39 @@ As default behavior the "output_area" under a code cell is cleared and over writ
 * Diff dialog for comparing pinned outputs with current outputs
 * Search feature in the diff dialog
 
-# Setup
+# How to install
 
-## Installation
+To install the multi_outputs extension, the following steps are required.
 
-1. make the `nbextensions` folder to `~/.ipython/`
-2. copy the `multi_outputs` folder to `~/.ipython/nbextensions/`
+## Install the python package
 
-## Configuration
+Install the `lc_multi_outputs` python package.
 
-1. make (or edit) youre `~/.jupyter/nbconfig/notebook.json` file
+```
+pip install git+https://github.com/NII-cloud-operation/Jupyter-multi_outputs
+```
 
-    ```
-    {
-      "load_extensions": {
-        "multi_outputs/main": true
-      }
-    }
-    ```
+## Install extension files
 
-1. Edit the .jupyter/jupyter_notebook.json to look like this
+Copy the nbextension files into the jupyter server's search directory.
 
-    ```
-    {
-      "Exporter": {
-        "preprocessors": [
-          "pre_codefolding.CodeFoldingPreprocessor",
-          "pre_pymarkdown.PyMarkdownPreprocessor"
-        ]
-      },
-      "NbConvertApp": {
-        "postprocessor_class": "post_embedhtml.EmbedPostProcessor"
-      },
-      "NotebookApp": {
-        "server_extensions": [
-          "nbextensions"
-        ]
-      },
-      "version": 1
-    }
-    ```
+```
+jupyter nbextension install --py lc_multi_outputs --user
+```
 
-    Edit the .jupyter/jupyter_nbconvert.json to look like this:
+About details of `jupyter nbextension` subcommand, execute this command with `--help` option, and see the results.
 
-    ```
-      {
-        "Exporter": {
-          "preprocessors": [
-            "pre_codefolding.CodeFoldingPreprocessor",
-            "pre_pymarkdown.PyMarkdownPreprocessor"
-          ]
-        },
-        "NbConvertApp": {
-          "postprocessor_class": "post_embedhtml.EmbedPostProcessor"
-        },
-        "version": 1
-      }
-    ```
+```
+jupyter nbextension --help
+```
 
-    This procedure referred to https://github.com/ipython-contrib/IPython-notebook-extensions
+## Enabling extension
+
+To use the multi_outputs extension, you will also need to enable it.
+
+```
+jupyter nbextension enable --py lc_multi_outputs --user
+```
 
 # Usage
 
