@@ -17,75 +17,369 @@ define([
     'notebook/js/codecell',
     'notebook/js/outputarea',
     'codemirror/lib/codemirror',
-
     'codemirror/addon/merge/merge',
-    'codemirror/addon/dialog/dialog',
     'codemirror/addon/search/searchcursor',
-    'codemirror/addon/search/search',
     'codemirror/addon/scroll/annotatescrollbar',
-    'codemirror/addon/search/matchesonscrollbar',
-    'codemirror/addon/search/jump-to-line',
-    'codemirror/mode/xml/xml'
+    'codemirror/addon/search/matchesonscrollbar'
 ], function(IPython, $, require, events, jsdialog, configmod, utils, codecell, outputarea, codemirror,
-    merge, dialog, searchcursor, search, annotatescrollbar, matchesonscrollbar, jumptoline, xml) {
+    merge, searchcursor, annotatescrollbar, matchesonscrollbar) {
     "use strict";
 
     function changeColor(first, cell, msg){
-        var outback = cell.output_area.prompt_overlay;
-        var inback = cell.input[0].firstChild;
+        var outback = cell.output_area.wrapper.find('.out_prompt_bg');
+        var inback = $(cell.input[0].firstChild);
 
-        if(first == true){
-            $(outback).css({"background-color":"#e0ffff"});//現在のセルを予約色に変更
-            $(inback).css({"background-color":"#e0ffff"});
-        }
-        else{
+        cell.element.removeClass('cell-status-success');
+        cell.element.removeClass('cell-status-error');
+        cell.element.removeClass('cell-status-inqueue');
+
+        if(first == true) {
+            cell.element.addClass('cell-status-inqueue');
+        } else {
             if (msg.content.status != "ok" && msg.content.status != "aborted") {
-                $(outback).css({"background-color": "#ffc0cb"}); //現在のセルを警告色に変更
-                $(inback).css({"background-color": "#ffc0cb"});
+                cell.element.addClass('cell-status-error');
             } else if (msg.content.status != "aborted") {
-                $(outback).css({"background-color": "#bcffbc"}); //現在のセルを完了色に変更
-                $(inback).css({"background-color": "#bcffbc"});
+                cell.element.addClass('cell-status-success');
             }
         }
     }
 
-    var original_outputarea_safe_append = outputarea.OutputArea.prototype._safe_append;
+    function init_events() {
+        events.on('create.Cell', function (e, data) {
+            setTimeout(function() {
+                extend_cell(data.cell);
+            }, 0);
+        });
+    }
 
-    outputarea.OutputArea.prototype.create_tab_area = function() {
-        this.clear_output();
+    function extend_cell(cell) {
+        var pinned_outputs = cell.metadata.pinned_outputs;
+        if(pinned_outputs === undefined) {
+            pinned_outputs = [];
+        }
+        if(cell.pinned_outputs === undefined) {
+            cell.pinned_outputs = [];
+        }
 
-        var subarea = $('<div/>').addClass('output_subarea').append($('<ul/>').attr('class', 'nav nav-tabs'));
-        var toinsert = this.create_output_area();
-        toinsert.append(subarea);
-
-        original_outputarea_safe_append.apply(this, toinsert);
-    };
-
-    var register_toolbar_menu = function() {
-        var init_cell_ui_callback = IPython.CellToolbar.utils.checkbox_ui_generator(
-            'multi outputs',
-            // setter
-            function(cell, value) {
-                cell.metadata.multi_outputs = value;
-                cell.output_area.multi_outputs = value;
-                if (value == true) {
-                    cell.output_area.create_tab_area.apply(cell.output_area);
-                } else {
-                    cell.output_area.clear_output();
-                }
-            },
-            // getter
-            function(cell) {
-                // if init_cell is undefined, it'll be interpreted as false anyway
-                return cell.metadata.multi_outputs;
+        if(pinned_outputs.length > 0) {
+            create_multi_output_tabs(cell)
+            for(var i=0; i<pinned_outputs.length; ++i) {
+                add_tab_outputarea(cell, pinned_outputs[i]);
             }
-        );
+        }
 
-        // Register a callback to create a UI element for a cell toolbar.
-        IPython.CellToolbar.register_callback('multi_output.is_init_cell', init_cell_ui_callback, 'code');
-        // Register a preset of UI elements forming a cell toolbar.
-        IPython.CellToolbar.register_preset('Multi outputs', ['multi_output.is_init_cell']);
-    };
+        extend_prompt(cell, cell.output_area);
+        create_pin_button(cell, cell.output_area);
+        update_pin_button_status(cell.output_area);
+    }
+
+    function create_multi_output_tabs(cell)
+    {
+        var container = $('<div/>')
+            .addClass('multi-output-container');
+        var tabbar = $('<div/>')
+            .addClass('multi-output-tabs')
+            .addClass('output_area')
+            .append($('<div/>')
+                    .addClass('out_prompt_bg').addClass('prompt'))
+            .appendTo(container);
+        var tabs = $('<ul/>')
+            .addClass('nav')
+            .addClass('nav-tabs')
+            .appendTo(tabbar);
+
+        container.insertAfter(cell.element.find('.input'));
+
+        tabs.append(
+            $('<li/>')
+                .attr('id', 'tab-output-current')
+                .append(
+                    $('<a/>').attr( { href: '#output-current'}).text('*')))
+
+        var tab_output_wrapper = $('<div/>')
+            .addClass('multi-output-wrapper')
+            .attr('id', 'output-current');
+
+        tab_output_wrapper.insertAfter(cell.element.find('div.multi-output-tabs'));
+        cell.output_area.wrapper.appendTo(tab_output_wrapper);
+
+        container.tabs();
+    }
+
+    function remove_multi_output_tabs(cell)
+    {
+        var container = cell.element.find('.multi-output-container');
+
+        container.tabs("destroy");
+        cell.output_area.wrapper.insertAfter(cell.element.find('.input'));
+        container.remove();
+    }
+
+    function add_tab_outputarea(cell, pinned_output_data)
+    {
+        var pinned_output_element = $('<div></div>')
+        var pinned_outputarea = new outputarea.OutputArea({
+            config: cell.config,
+            selector: pinned_output_element,
+            prompt_area: true,
+            events: cell.events,
+            keyboard_manager: cell.keyboard_manager,
+        });
+        var pinned_output = {
+            execution_count: pinned_output_data.execution_count,
+            outputarea: pinned_outputarea,
+            data: pinned_output_data
+        }
+
+        var tab_container = cell.element.find('div.multi-output-container');
+        var tab_id = 'output-' + Date.now();
+        var tab_wrapper = $('<div/>')
+            .addClass('multi-output-wrapper')
+            .attr('id', tab_id)
+            .append(pinned_output_element)
+            .appendTo(tab_container);
+
+        cell.pinned_outputs.push(pinned_outputarea);
+
+        pinned_outputarea.trusted = cell.metadata.trusted || false;
+        pinned_outputarea.fromJSON(pinned_output_data.outputs);
+
+        extend_prompt(cell, pinned_outputarea);
+
+        create_diff_button(cell, pinned_output);
+
+        var tab = create_tab(cell, pinned_output, tab_id);
+        tab.insertAfter(cell.element.find('div.multi-output-tabs ul.nav-tabs li#tab-output-current'));
+
+        setTimeout(function() {
+            tab_container.tabs('refresh');
+        }, 0);
+
+        return tab;
+    }
+
+    function create_tab(cell, pinned_output, id)
+    {
+        var title = 'Out [' + pinned_output.execution_count + ']';
+        var tab = $('<li/>')
+            .attr('id', 'tab-' + id)
+            .append($('<button/>')
+                    .button({
+                        icons: { primary: 'ui-icon-circle-close' },
+                        text: null
+                    })
+                    .on('click', function() {
+                        remove_pinned_output(cell, pinned_output, id);
+                    })).append($('<a/>').attr( { href: '#' + id }).text(title))
+        return tab;
+    }
+
+    function extend_prompt(cell, output_area)
+    {
+        $('<div/>')
+            .addClass('out_prompt_bg')
+            .addClass('prompt')
+            .appendTo(output_area.wrapper);
+    }
+
+    function create_pin_button(cell, output_area)
+    {
+        var container = $('<div/>')
+                    .addClass('multi-outputs-ui')
+                    .appendTo(output_area.wrapper.find('.out_prompt_overlay'));
+
+        var btn = $('<div/>')
+                    .addClass('buttons')
+                    .append('<button class="btn btn-default"/>')
+                    .appendTo(container);
+
+        var clickable = btn.find('button');
+        $('<i class="fa fa-fw fa-thumb-tack"/>').appendTo(clickable);
+        clickable.on('click', function (event) {
+            pin_output(cell);
+            return false;
+        });
+    }
+
+    function create_diff_button(cell, pinned_output) {
+        var output_area = pinned_output.outputarea;
+        var container = $('<div/>')
+                    .addClass('multi-outputs-diff-ui')
+                    .appendTo(output_area.wrapper.find('.out_prompt_overlay'));
+
+        var btn = $('<div/>')
+                    .addClass('buttons')
+                    .append('<button class="btn btn-default"/>')
+                    .appendTo(container);
+
+        var clickable = btn.find('button');
+        $('<i class="fa fa-fw fa-exchange"/>').appendTo(clickable);
+        clickable.on('click', function (event) {
+            show_diff_dialog(cell, pinned_output);
+            return false;
+        });
+    }
+
+    function update_pin_button_status(output_area) {
+        if(output_area.outputs.length == 0) {
+            output_area.wrapper.find('.multi-outputs-ui').css('display', 'none');
+        } else {
+            output_area.wrapper.find('.multi-outputs-ui').css('display', '');
+        }
+    }
+
+    function pin_output(cell) {
+        if(cell.output_area.outputs.length == 0) {
+            return;
+        }
+
+        if(cell.input_prompt_number === '*') {
+            return;
+        }
+
+        if(cell.metadata.pinned_outputs === undefined) {
+            cell.metadata.pinned_outputs = [];
+        }
+
+        var outputs_json = cell.output_area.toJSON();
+        var pinned_output = {
+            'execution_count': cell.input_prompt_number,
+            'outputs' : outputs_json
+        }
+        cell.metadata.pinned_outputs.push(pinned_output);
+
+        if(cell.pinned_outputs.length == 0) {
+            create_multi_output_tabs(cell);
+        }
+        var tab = add_tab_outputarea(cell, pinned_output);
+        var anchor = tab.find('a');
+        setTimeout(function() {
+            anchor.click();
+        }, 0);
+
+        update_pin_button_status(cell.output_area);
+
+        cell.events.trigger('set_dirty.Notebook', {value: true});
+    }
+
+    function remove_pinned_output(cell, pinned_output, tab_id) {
+        cell.pinned_outputs.splice(
+            cell.pinned_outputs.indexOf(pinned_output), 1);
+        cell.metadata.pinned_outputs.splice(
+            cell.metadata.pinned_outputs.indexOf(pinned_output.data), 1);
+
+        cell.element.find('ul > li#tab-' + tab_id).remove();
+        cell.element.find('div#' + tab_id ).remove();
+        cell.element.find('div.multi-output-container').tabs('refresh');
+
+        if(cell.pinned_outputs.length == 0) {
+            remove_multi_output_tabs(cell);
+        }
+
+        cell.events.trigger('set_dirty.Notebook', {value: true});
+    }
+
+    function get_output_text(output_area) {
+        var outputs = output_area.outputs;
+        var texts = new Array();
+        for(var i=0; i < outputs.length; ++i) {
+            if (outputs[i].data && outputs[i].data['text/plain']) {
+                texts.push(outputs[i].data['text/plain']);
+            } else if (outputs[i].output_type == 'stream') {
+                texts.push(outputs[i].text);
+            } else if (outputs[i].output_type == 'error') {
+                texts.push(outputs[i].traceback.join('\n'));
+            }
+        }
+        return texts.join('\n');
+    }
+
+    function mark_text(editor, query, searchCursor)
+    {
+        var searchCursor = editor.getSearchCursor(query, 0, false);
+
+        var marks = editor.getAllMarks();
+        for (var i=0; i<marks.length; ++i) {
+            marks[i].clear();
+        }
+        if(editor.scrollBarAnnotation) {
+            editor.scrollBarAnnotation.clear();
+        }
+
+        var options = {className: 'search-highlight'};
+        while(searchCursor.findNext()) {
+            editor.markText(
+                searchCursor.from(), searchCursor.to(),
+                options);
+        }
+        editor.scrollBarAnnotation = editor.showMatchesOnScrollbar(query, false, options);
+    }
+
+    function show_diff_dialog(cell, pinned_output) {
+        var value = get_output_text(cell.output_area);
+        var orig = get_output_text(pinned_output.outputarea);
+        if(value === "" && orig === "") {
+            return;
+        }
+
+        var number = cell.input_prompt_number;
+        var orig_number = pinned_output.execution_count;
+
+        var dv;
+        var content = $('<div/>').addClass('multi-outputs-diff');
+        var searchbar = $('<div/>').addClass('multi-outputs-search-bar');
+        $('<span/>').addClass('label').text('Search').appendTo(searchbar);
+        var input = $('<input/>').attr('type', 'text').appendTo(searchbar);
+        input.keydown(function(event, ui) {
+            event.stopPropagation();
+            return true;
+        });
+        input.change(function(event, ui) {
+            var text = input.val();
+            mark_text(dv.edit, text);
+            mark_text(dv.right.orig, text);
+        });
+
+        var dialogResized = function (event, ui) {
+            content.css('width', '');
+            var dialog = content.parent();
+            var titlebar = dialog.find('.ui-dialog-titlebar');
+            var height = dialog.height() - titlebar.outerHeight();
+            content.css('height', height + 'px');
+            var merge = content.find('.CodeMirror-merge');
+            var mergeHeight = content.height() - searchbar.outerHeight();
+            merge.css('height', mergeHeight + 'px');
+            dv.edit.setSize(null, merge.height() + 'px');
+            dv.right.orig.setSize(null, merge.height() + 'px');
+            dv.right.forceUpdate();
+        }
+
+        content.dialog({
+            open: function(event, ui) {
+                dv = codemirror.MergeView(content.get(0), {
+                    value: value,
+                    orig: orig,
+                    lineNumbers: true,
+                    mode: "text/plain",
+                    highlightDifferences: true,
+                    revertButtons: false,
+                    lineWrapping: true
+                });
+                searchbar.appendTo(content);
+                dialogResized();
+            },
+            close: function(event, ui) {
+                content.dialog("destroy");
+            },
+            resize: dialogResized,
+            resizeStop: dialogResized,
+            title: "Diff: Out[" + number + "] <- Out[" + orig_number + "]",
+            minWidth: 500,
+            minHeight: 400,
+            width: 500,
+            height: 400,
+        });
+    }
 
     /* Load additional CSS */
     var load_css = function (name) {
@@ -97,36 +391,55 @@ define([
     };
 
     var load_extension = function() {
+        load_css('./main.css');
         load_css('codemirror/addon/merge/merge.css');
-        load_css('./custom-codemirror.css');
-
-        load_css('codemirror/addon/dialog/dialog.css');
         load_css('codemirror/addon/search/matchesonscrollbar.css');
     };
 
-    var multi_outputs = function() {
-        register_toolbar_menu();
-        load_extension();
-        outputarea.OutputArea.prototype._safe_append = function(toinsert) {
-            if (!this.multi_outputs) {
-                original_outputarea_safe_append.apply(this, toinsert);
-            } else {
-                try {
-                    var output_element = this.element;
-                    var subarea = output_element.children('div.output_area').children('div.output_subarea');
-                    subarea.append(toinsert.children('div.output_subarea'));
-                } catch(err) {
-                    console.log(err);
-                    // Create an actual output_area and output_subarea, which creates
-                    // the prompt area and the proper indentation.
-                    var toinsert = this.create_output_area();
-                    var subarea = $('<div/>').addClass('output_subarea');
-                    toinsert.append(subarea);
-                    this._append_javascript_error(err, subarea);
-                    this.element.append(toinsert);
-                }
+    function patch_CodeCell_get_callbacks() {
+        console.log('[multi_outputs] patching CodeCell.prototype.get_callbacks');
+        var previous_get_callbacks = codecell.CodeCell.prototype.get_callbacks;
+        codecell.CodeCell.prototype.get_callbacks = function() {
+            var that = this;
+            var callbacks = previous_get_callbacks.apply(this, arguments);
+            var prev_iopub_output_callback = callbacks.iopub.output;
+            callbacks.iopub.output = function(msg) {
+                prev_iopub_output_callback(msg);
+                update_pin_button_status(that.output_area);
             }
+            var prev_iopub_clear_output_callback = callbacks.iopub.clear_output;
+            callbacks.iopub.clear_output = function(msg) {
+                prev_iopub_clear_output_callback(msg);
+                update_pin_button_status(that.output_area);
+            }
+            return callbacks;
+        };
+    }
+
+    function patch_CodeCell_clear_output() {
+        console.log('[multi_outputs] patching CodeCell.prototype.clear_output');
+        var previous_clear_output = codecell.CodeCell.prototype.clear_output;
+        codecell.CodeCell.prototype.clear_output = function(wait) {
+            previous_clear_output.apply(this, arguments);
+            update_pin_button_status(this.output_area);
         }
+    }
+
+    function patch_CodeCell_handle_execute_reply() {
+        console.log('[multi_outputs] patching CodeCell.prototype._handle_execute_reply');
+        var previous_handle_execute_reply = codecell.CodeCell.prototype._handle_execute_reply;
+        codecell.CodeCell.prototype._handle_execute_reply = function (msg) {
+            changeColor(false, this, msg);
+            previous_handle_execute_reply.apply(this, arguments);
+        };
+    }
+
+    var multi_outputs = function() {
+        load_extension();
+        patch_CodeCell_get_callbacks();
+        patch_CodeCell_clear_output();
+        patch_CodeCell_handle_execute_reply();
+        init_events();
 
         var original_codecell_execute = codecell.CodeCell.prototype.execute;
         codecell.CodeCell.prototype.execute = function (stop_on_error) {
@@ -145,9 +458,7 @@ define([
                 stop_on_error = true;
             }
 
-            if (!this.metadata.multi_outputs) {
-                this.clear_output(false, true);
-            }
+            this.clear_output(false, true);
             var old_msg_id = this.last_msg_id;
             if (old_msg_id) {
                 this.kernel.clear_callbacks_for_msg(old_msg_id);
@@ -160,18 +471,13 @@ define([
                 return;
             }
 
-            if (this.metadata.multi_outputs) {
-                $(this.output_area.element).find('.tab-stream').hide();
-                $(this.output_area.element).find('.output_stream').hide();
-                $(this.output_area.element).find('.tab-execute_result').hide();
-                $(this.output_area.element).find('.output_result').hide();
-            }
-
             var output_json = this.output_area.outputs[this.output_area.outputs.length-1];
             this.set_input_prompt('*');
             this.element.addClass("running");
 
             changeColor(true, this);
+
+            this.element.find('.multi-output-tabs li#tab-output-current a').click();
 
             var callbacks = this.get_callbacks();
 
@@ -189,100 +495,13 @@ define([
             this.events.trigger('execute.CodeCell', {cell: this});
         };
 
-        var output_area_convert_tab = function(output_area, json) {
-            var data_id = Date.now();
-            var output_element = $(output_area.element);
-            var subarea = output_element.children('div.output_area').children('div.output_subarea')
-            var ul = subarea.children('ul');
-            var tab_name;
-            if (json.output_type) {
-                tab_name = 'tab-' + json.output_type; //tab-stream, tab-text, ...
-            }
-
-            var that = output_area;
-            ul.append(
-                $('<li/>')
-                    .attr({ 'id': 'li-' + data_id })
-                    .attr({ 'class':tab_name})
-                    .append($('<button/>')
-                        .button({
-                            icons: { primary: 'ui-icon-circle-close' },
-                            text: null
-                        })
-                        .on('click', function() {
-                            that.outputs.splice(that.outputs.indexOf(json), 1);
-                            $('#li-' + data_id ).remove();
-                            $('#div-' + data_id ).remove();
-                            $(subarea).tabs('refresh');
-
-                            refresh_selectbox($(output_element).parents('div.code_cell'));
-                        })
-                    ).append( $('<a/>').attr( { href: '#div-' + data_id }).text(json.output_type))
-            );
-
-            subarea.children('div.output_subarea').last().attr({"id": 'div-' + data_id});
-
-            $(output_area.element).find('.tab-stream').show();
-            $(output_area.element).find('.output_stream').show();
-            $(output_area.element).find('.tab-execute_result').show();
-            $(output_area.element).find('.output_result').show();
-
-            $(subarea).tabs();
-            $(subarea).tabs('refresh');
-
-            var tab_length = ul.children('li').length;
-            $(subarea).tabs('option', 'active', tab_length - 1);
-
-            add_codemirror(output_area.element);
-
-            // Add diff-area if the tabs >= 2
-            if(tab_length >= 2) {
-                add_diff_content(output_element, subarea, ul, that);
-            }
-        };
-
-        codecell.CodeCell.prototype._handle_execute_reply = function (msg) {
-            if (this._metadata.multi_outputs) {
-                var output_json = this.output_area.outputs[this.output_area.outputs.length-1];
-                if (output_json.output_type == 'stream') {
-                    output_json.name = output_json.name + '_' + Date.now();
-                }
-
-                output_area_convert_tab(this.output_area, output_json);
-
-            } else {
-                add_codemirror(this.output_area.element)
-            }
-
-            this.set_input_prompt(msg.content.execution_count);
-
-            changeColor(false, this, msg);
-
-            this.element.removeClass("running");
-            this.events.trigger('set_dirty.Notebook', {value: true});
-        };
-
         /**
         * execute this extension on load
         */
         var on_notebook_loaded = function() {
             IPython.notebook.get_cells().forEach( function(cell, index, array) {
                 if (cell instanceof codecell.CodeCell) {
-                    if (cell._metadata.multi_outputs) {
-                        var outputs = cell.output_area.outputs;
-                        cell.output_area.outputs = null;
-
-                        cell.output_area.multi_outputs = cell._metadata.multi_outputs;
-
-                        cell.output_area.create_tab_area.apply(cell.output_area);
-
-                        outputs.forEach( function(json, index, array) {
-                             cell.output_area.append_output(json);
-                             output_area_convert_tab(cell.output_area, json);
-                        });
-                    } else {
-                        add_codemirror(cell.output_area.element);
-                    }
+                    extend_cell(cell);
                 }
             });
         };
@@ -294,217 +513,6 @@ define([
             }
         })();
     };
-
-    var add_codemirror = function(elem) {
-        var dom = $('<input type="text" style="width: 100%" class="CodeMirror-search-field"/>', {});
-
-        var preList = $(elem).find('pre');
-        if (preList.length == 0) return;
-        $(preList).each(function(index, element){
-            if ($(element).children('*').length > 0) {
-                return true;
-            }
-            var pre = $(element).wrapInner('<textarea></textarea>').wrapInner('<form></form>');
-            var textarea = $(pre).children('form').children('textarea');
-            var cm = new CodeMirror.fromTextArea(textarea.get(0), {
-              mode: "text/html",
-              lineNumbers: false,
-              readOnly: "true",
-              extraKeys: {"Cmd-F": "find"}
-            });
-            element.addEventListener('copy', function(ev) {
-                ev.clipboardData.setData('text/plain', cm.getSelection());
-                ev.stopPropagation();
-            });
-        });
-    }
-
-    codemirror.defineExtension("openDialog", function(template, callback, options) {
-        var dom = $('<input type="text" style="width: 100%" class="CodeMirror-search-field"/>', {});
-        var modal = jsdialog.modal({
-            notebook: IPython.notebook,
-            keyboard_manager: IPython.notebook.keyboard_manager,
-            title : "Search:     (Use /re/ syntax for regexp search)",
-            body : dom,
-            buttons : {
-                Search : {
-                    class: 'btn-primary CodeMirror-search-button',
-                },
-            },
-            open: function() {
-                var inputField = $(this).find('.CodeMirror-search-field').get(0);
-                $(inputField).val('');
-                $(inputField).focus();
-            }
-        });
-        var CodeMirror = codemirror;
-
-        if (!options) options = {};
-        var closed = false, me = this;
-        function close(newVal) {
-            if (typeof newVal == 'string') {
-                inp.value = newVal;
-            } else {
-                if (closed) return;
-                closed = true;
-                $(modal).modal('hide');
-                me.focus();
-            }
-        }
-
-        var inp = $(modal).find('.CodeMirror-search-field').get(0), button;
-        if (inp) {
-            $(inp).val('');
-
-            if (options.value) {
-                inp.value = options.value;
-                if (options.selectValueOnOpen !== false) {
-                    inp.select();
-                }
-            }
-
-            if (options.onInput)
-                CodeMirror.on(inp, "input", function(e) { options.onInput(e, inp.value, close);});
-            if (options.onKeyUp)
-                CodeMirror.on(inp, "keyup", function(e) {options.onKeyUp(e, inp.value, close);});
-
-            CodeMirror.on(inp, "keydown", function(e) {
-                if (options && options.onKeyDown && options.onKeyDown(e, inp.value, close)) { return; }
-                if (e.keyCode == 27 || (options.closeOnEnter !== false && e.keyCode == 13)) {
-                    inp.blur();
-                    CodeMirror.e_stop(e);
-                    close();
-                }
-                if (e.keyCode == 13) callback(inp.value, e);
-            });
-
-            if (options.closeOnBlur !== false) CodeMirror.on(inp, "blur", close);
-        } else if (button = $(modal).find('.CodeMirror-search-button').get(0)) {
-            CodeMirror.on(button, "click", function() {
-            close();
-            me.focus();
-        });
-
-        if (options.closeOnBlur !== false) CodeMirror.on(button, "blur", close);
-            button.focus();
-        }
-        return close;
-    });
-
-    var add_diff_content = function(output_element, subarea, ul) {
-        var cell = $(output_element).parents('div.code_cell');
-        if($(cell).children('.diff-area').length) {
-            refresh_selectbox(cell);
-            return;
-        }
-        // Add diff area
-        var diff_area = $('<div></div>')
-            .attr('class', 'diff-area')
-            .insertAfter(
-                $(cell.children('.input'))
-            );
-        // Add diff button
-        $(diff_area)
-            .append($('<button/>')
-                .attr('class', 'btn btn-default diff-button')
-                .text('Find diff')
-                .on('click', function() {
-                    output_diff_area(cell, subarea, ul, diff_area);
-                })
-            ).append($('<select/>')
-                .attr('class', 'diff-selector form-control')
-            ).append($('<select/>')
-                .attr('class', 'diff-selector form-control')
-            // ).append($('<input/>')
-            //     .attr('class', 'diff-exclude form-control')
-            //     .attr('type', 'text')
-            //     .attr('placeholder', 'Exclude')
-            );
-
-            // IPython.notebook.keyboard_manager.register_events($('.diff-exclude'));
-        refresh_selectbox(cell);
-    }
-
-    var refresh_selectbox = function(cell) {
-        var diff_area = cell.children('.diff-area');
-        // Add select-box option
-        var $tabs = $(cell).find('li');
-        //
-        if($(diff_area).children('.diff-selector')) {
-            $(diff_area).children('.diff-selector').children().remove();
-        }
-        var options = $.map($($tabs), function (name, value) {
-            var isSelected = false;
-            var text = (value + 1) + 'th';
-            var $option = $('<option>', { value: value+1, text: text, selected: isSelected });
-            return $option;
-        });
-        $(diff_area).children('.diff-selector').append(options);
-    }
-
-    var output_diff_area = function(cell, subarea, ul, diff_area) {
-        var data_id = Date.now();
-        // Add diff-result area
-        $('<div></div>')
-            .attr('class', 'output_subarea')
-            .text('hoge')
-            .insertAfter(
-                cell.find('div.output_subarea').last()
-            );
-        // tab
-        ul.append(
-            $('<li/>')
-                .attr({ 'id': 'diff-li-' + data_id })
-                .append($('<button/>')
-                    .button({
-                        icons: { primary: 'ui-icon-circle-close' },
-                        text: null
-                    })
-                    .on('click', function() {
-                        $('#diff-li-' + data_id ).remove();
-                        $('#diff-div-' + data_id ).remove();
-                        $(subarea).tabs('refresh');
-                    })
-                ).append( $('<a/>').attr( { href: '#diff-div-' + data_id }).text('diff'))
-        );
-        cell.find('div.output_subarea').last().attr({"id": 'diff-div-' + data_id});
-
-        // Get select-box value
-        value = cell.find('div.output_subarea').eq(diff_area.children('.diff-selector').eq(1).val()).find('textarea').text();
-        orig = cell.find('div.output_subarea').eq(diff_area.children('.diff-selector').eq(0).val()).find('textarea').text();
-        var ignore = cell.find('.diff-exclude').val();
-        if(ignore !== '') {
-            value = value.replace(eval(ignore), "");
-            orig = orig.replace(eval(ignore), "");
-        }
-        // Display diff
-        initUI(2, 'diff-div-' + data_id );
-
-        $(subarea).tabs();
-        $(subarea).tabs('refresh');
-
-        var tab_length = ul.children('li').length;
-        $(subarea).tabs('option', 'active', tab_length - 1);
-    }
-
-    // Display diff
-    var value, orig, dv, hilight= true;
-    function initUI(panes, target_id) {
-        var target = document.getElementById(target_id);
-        if (value == null) return;
-        target.innerHTML = "";
-        dv = codemirror.MergeView(target, {
-            value: value,
-            orig: orig,
-            lineNumbers: true,
-            mode: "text/html",
-            highlightDifferences: hilight
-        });
-    }
-
-    function toggleDifferences() {
-        dv.setShowDifferences(hilight = !hilight);
-    }
 
     return {
         load_ipython_extension : multi_outputs,
