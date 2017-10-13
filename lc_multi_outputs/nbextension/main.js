@@ -21,7 +21,7 @@ define([
     'codemirror/addon/search/searchcursor',
     'codemirror/addon/scroll/annotatescrollbar',
     'codemirror/addon/search/matchesonscrollbar'
-], function(IPython, $, require, events, jsdialog, configmod, utils, codecell, outputarea, codemirror,
+], function(Jupyter, $, require, events, jsdialog, configmod, utils, codecell, outputarea, codemirror,
     merge, searchcursor, annotatescrollbar, matchesonscrollbar) {
     "use strict";
 
@@ -462,7 +462,6 @@ define([
         patch_CodeCell_get_callbacks();
         patch_CodeCell_clear_output();
         patch_CodeCell_handle_execute_reply();
-        init_events();
 
         var original_codecell_execute = codecell.CodeCell.prototype.execute;
         codecell.CodeCell.prototype.execute = function (stop_on_error) {
@@ -522,11 +521,12 @@ define([
         * execute this extension on load
         */
         var on_notebook_loaded = function() {
-            IPython.notebook.get_cells().forEach( function(cell, index, array) {
+            Jupyter.notebook.get_cells().forEach( function(cell, index, array) {
                 if (cell instanceof codecell.CodeCell) {
                     extend_cell(cell);
                 }
             });
+            init_events();
         };
 
         Jupyter.notebook.config.loaded.then(function on_config_loaded () {
@@ -534,13 +534,10 @@ define([
         }, function on_config_load_error (reason) {
             console.warn(log_prefix, 'Using defaults after error loading config:', reason);
         }).then(function do_stuff_with_config () {
-            (function() {
-                if(IPython.notebook.get_cells().length == 0) {
-                    $([IPython.events]).on("notebook_loaded.Notebook", on_notebook_loaded);
-                }else{
-                    on_notebook_loaded();
-                }
-            })();
+            events.on("notebook_loaded.Notebook", on_notebook_loaded);
+            if (Jupyter.notebook !== undefined && Jupyter.notebook._fully_loaded) {
+                on_notebook_loaded();
+            }
         }).catch(function on_error (reason) {
             console.error(log_prefix, 'Error:', reason);
         });
@@ -550,7 +547,4 @@ define([
         load_ipython_extension : multi_outputs,
         load_jupyter_extension : multi_outputs
     };
-
-    $([IPython.events]).on('notebook_loaded.Notebook', load_extension);
-
 });
