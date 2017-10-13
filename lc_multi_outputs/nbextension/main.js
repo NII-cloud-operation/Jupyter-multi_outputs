@@ -54,9 +54,11 @@ define([
 
     function init_events() {
         events.on('create.Cell', function (e, data) {
-            setTimeout(function() {
-                extend_cell(data.cell);
-            }, 0);
+            if (data.cell instanceof codecell.CodeCell) {
+                setTimeout(function() {
+                    extend_cell(data.cell);
+                }, 0);
+            }
         });
     }
 
