@@ -180,7 +180,7 @@ define([
                         text: null
                     })
                     .on('click', function() {
-                        remove_pinned_output(cell, pinned_output);
+                        remove_pinned_output(cell, pinned_output.outputarea);
                     })).append($('<a/>').attr( { href: '#' + id }).text(title))
         return tab;
     }
