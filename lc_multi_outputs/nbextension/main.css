@@ -132,3 +132,23 @@
 .ui-widget-header {
     background: #e7e7e7;
 }
+
+div.cell div.multi-output-container {
+    background: unset;
+}
+
+.fa-pin-output:before {
+    content: "\f08d";
+}
+
+.fa-pin-output:after {
+    content: "+";
+}
+
+.fa-pin-remove-leaving-one:before {
+    content: "\f08d";
+}
+
+.fa-pin-remove-leaving-one:after {
+    content: "1";
+}

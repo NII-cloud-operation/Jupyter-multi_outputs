@@ -180,7 +180,7 @@ define([
                         text: null
                     })
                     .on('click', function() {
-                        remove_pinned_output(cell, pinned_output);
+                        remove_pinned_output(cell, pinned_output.outputarea);
                     })).append($('<a/>').attr( { href: '#' + id }).text(title))
         return tab;
     }
@@ -263,9 +263,9 @@ define([
             create_multi_output_tabs(cell);
         }
         var tab = add_tab_outputarea(cell, pinned_output);
-        var anchor = tab.find('a');
+        var tab_container = cell.element.find('div.multi-output-container');
         setTimeout(function() {
-            anchor.click();
+            tab_container.tabs("option", "active", 1);
         }, 0);
 
         remove_old_pinned_outputs(cell);
@@ -275,10 +275,14 @@ define([
         cell.events.trigger('set_dirty.Notebook', {value: true});
     }
 
-    function remove_old_pinned_outputs(cell) {
+    function remove_old_pinned_outputs(cell, rest_num) {
         var pinned_output_areas = cell.pinned_outputs;
 
-        var max = Math.max(options.max_num_of_pinned_outputs, 1);
+        if (rest_num === undefined) {
+            rest_num = options.max_num_of_pinned_outputs;
+        }
+
+        var max = Math.max(rest_num, 1);
         while(pinned_output_areas.length > max) {
             remove_pinned_output(cell,
                                  pinned_output_areas[0],
@@ -302,6 +306,141 @@ define([
         }
 
         cell.events.trigger('set_dirty.Notebook', {value: true});
+    }
+
+    function get_cell_level(cell) {
+        var level = 7;
+        if (cell === undefined) {
+            return level;
+        }
+        if ((typeof(cell) === 'object')  && (cell.cell_type === 'markdown')) {
+            level = cell.get_text().match(/^#*/)[0].length || level;
+        }
+        return Math.min(level, 7);
+    }
+
+    function is_heading(cell) {
+        return get_cell_level(cell) < 7;
+    }
+
+    function get_section_cells(heading_cell)
+    {
+        var top_level = get_cell_level(heading_cell);
+        var cells = Jupyter.notebook.get_cells();
+
+        var index = Jupyter.notebook.find_cell_index(heading_cell);
+        var section_cells = new Array();
+        for (var i=index+1; i<cells.length; ++i) {
+            var cell = cells[i];
+            var level = get_cell_level(cell);
+            if (level > top_level) {
+                section_cells.push(cell);
+            } else if(level <= top_level) {
+                break;
+            }
+        }
+        return section_cells;
+    }
+
+    function find_heading_cell(cell) {
+        if (is_heading(cell)) {
+            return cell;
+        }
+
+        var cells = cell.notebook.get_cells();
+        var index = cell.notebook.find_cell_index(cell);
+        if (index == 0) {
+            return null;
+        }
+        for (var i=index-1; i>=0; --i) {
+            if (is_heading(cells[i])) {
+                return cells[i];
+            }
+        }
+        return null;
+    }
+
+    function get_bellow_all_cells()
+    {
+        var index = Jupyter.notebook.get_selected_index();
+        var cells = [].concat(Jupyter.notebook.get_cells());
+        cells.splice(0, index);
+        return cells;
+    }
+
+    function get_below_in_section_cells() {
+        var index = Jupyter.notebook.get_selected_index();
+        var cells = Jupyter.notebook.get_cells();
+
+        var heading_cell = find_heading_cell(cells[index]);
+        var section;
+        if (heading_cell) {
+            section = get_section_cells(heading_cell);
+            section.splice(0, 0, heading_cell);
+        } else {
+            section = [];
+            var level = ch.get_cell_level(cells[index]);
+            for (var i=index; i<cells.length; ++i) {
+                if (ch.get_cell_level(cells[i]) !== level) {
+                    break;
+                }
+                section.push(cells[i]);
+            }
+        }
+
+        var section_cells = new Array();
+        var index_in_section = $.inArray(cells[index], section);
+        for (var i=index_in_section; i<section.length; ++i) {
+            section_cells.push(section[i]);
+        }
+
+        return section_cells;
+    }
+
+    function pin_output_cells(cells) {
+        for (var i = 0; i < cells.length; i++) {
+            if (cells[i] instanceof codecell.CodeCell) {
+                pin_output(cells[i]);
+            }
+        }
+    }
+
+    function pin_output_selected() {
+        var cells = Jupyter.notebook.get_selected_cells();
+        pin_output_cells(cells);
+    }
+
+    function pin_output_below_in_section() {
+        var cells = get_below_in_section_cells();
+        pin_output_cells(cells);
+    }
+
+    function pin_output_below_all() {
+        var cells = get_bellow_all_cells();
+        pin_output_cells(cells);
+    }
+
+    function remove_pinned_outputs_leaving_one(cells) {
+        for (var i = 0; i < cells.length; i++) {
+            if (cells[i] instanceof codecell.CodeCell) {
+                remove_old_pinned_outputs(cells[i], 1);
+            }
+        }
+    }
+
+    function remove_pinned_outputs_leaving_one_selected() {
+        var cells = Jupyter.notebook.get_selected_cells();
+        remove_pinned_outputs_leaving_one(cells);
+    }
+
+    function remove_pinned_outputs_leaving_one_below_in_section() {
+        var cells = get_below_in_section_cells();
+        remove_pinned_outputs_leaving_one(cells);
+    }
+
+    function remove_pinned_outputs_leaving_one_below_all() {
+        var cells = get_bellow_all_cells();
+        remove_pinned_outputs_leaving_one(cells);
     }
 
     function get_output_text(output_area) {
@@ -459,8 +598,43 @@ define([
         };
     }
 
+    function register_toolbar_buttons() {
+        var buttons = [];
+
+        buttons.push(Jupyter.keyboard_manager.actions.register({
+            help : 'pin selected cells\' output',
+            icon : 'fa-pin-output',
+            handler : pin_output_selected,
+        }, 'pin_output', mod_name));
+        Jupyter.keyboard_manager.actions.register({
+            help : 'pin outputs below in section',
+            handler : pin_output_below_in_section,
+        }, 'pin_output_below_in_section', mod_name);
+        Jupyter.keyboard_manager.actions.register({
+            help : 'pin outputs below all',
+            handler : pin_output_below_all,
+        }, 'pin_output_below_all', mod_name);
+
+        buttons.push(Jupyter.keyboard_manager.actions.register({
+            help : 'remove pinned outputs of selected cells leaving the leftmost one',
+            icon : 'fa-pin-remove-leaving-one',
+            handler : remove_pinned_outputs_leaving_one_selected,
+        }, 'pin_remove_leaving_one', mod_name));
+        Jupyter.keyboard_manager.actions.register({
+            help : 'remove pinned outputs leaving the leftmost one (cells below in the section)',
+            handler : remove_pinned_outputs_leaving_one_below_in_section,
+        }, 'pin_remove_leaving_one_below_in_section', mod_name);
+        Jupyter.keyboard_manager.actions.register({
+            help : 'remove pinned outputs leaving the leftmost one (cells below all)',
+            handler : remove_pinned_outputs_leaving_one_below_all,
+        }, 'pin_remove_leaving_one_below_all', mod_name);
+
+        Jupyter.toolbar.add_buttons_group(buttons);
+    }
+
     var multi_outputs = function() {
         load_extension();
+        register_toolbar_buttons();
         patch_CodeCell_get_callbacks();
         patch_CodeCell_clear_output();
         patch_CodeCell_handle_execute_reply();
@@ -501,7 +675,7 @@ define([
 
             changeColor(true, this);
 
-            this.element.find('.multi-output-tabs li#tab-output-current a').click();
+            this.element.find('div.multi-output-container').tabs("option", "active", 0);
 
             var callbacks = this.get_callbacks();
 
