@@ -683,6 +683,10 @@ define([
             var data = {
                 "lc_cell_data" : {
                     "lc_cell_meme" : this.metadata.lc_cell_meme
+                },
+                "lc_notebook_data" : {
+                    "lc_notebook_meme": this.notebook.metadata.lc_notebook_meme,
+                    "notebook_path": this.notebook.notebook_path
                 }
             };
             $.extend(true, options, data);
