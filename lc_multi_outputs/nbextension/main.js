@@ -3,13 +3,7 @@ require.config({
     name: "diff_match_patch",
     location: "//cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119",
     main: "diff_match_patch"
-  }],
-  paths: {
-    "jquery-migrate": "https://code.jquery.com/jquery-migrate-3.0.0.min"
-  },
-  shim: {
-    'jquery-migrate': { deps: ['jquery'] },
-  }
+  }]
 });
 
 define([
@@ -26,8 +20,7 @@ define([
     'codemirror/addon/merge/merge',
     'codemirror/addon/search/searchcursor',
     'codemirror/addon/scroll/annotatescrollbar',
-    'codemirror/addon/search/matchesonscrollbar',
-    'jquery-migrate'
+    'codemirror/addon/search/matchesonscrollbar'
 ], function(Jupyter, $, require, events, jsdialog, configmod, utils, codecell, outputarea, codemirror,
     merge, searchcursor, annotatescrollbar, matchesonscrollbar) {
     "use strict";
