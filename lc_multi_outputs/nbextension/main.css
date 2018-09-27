@@ -1,5 +1,4 @@
 .output_wrapper .out_prompt_bg {
-    height: 100%;
     padding: 0px 0.4em;
     position: absolute;
     border-radius: 2px;
@@ -51,14 +50,17 @@
 
 .cell-status-success .input_prompt,.cell-status-success .out_prompt_bg {
     background-color: #bcffbc;
+    height: 100%;
 }
 
 .cell-status-error .input_prompt,.cell-status-error .out_prompt_bg {
     background-color: #ffc0cb;
+    height: 100%;
 }
 
 .cell-status-inqueue .input_prompt,.cell-status-inqueue .out_prompt_bg {
     background-color: #e0ffff;
+    height: 100%;
 }
 
 .multi-output-container.ui-tabs {
