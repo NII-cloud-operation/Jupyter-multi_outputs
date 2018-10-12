@@ -1,1 +1,2 @@
 include lc_multi_outputs/nbextension/*
+include lc_multi_outputs/nbextension/lib/*

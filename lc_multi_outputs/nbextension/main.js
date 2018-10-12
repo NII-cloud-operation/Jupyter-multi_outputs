@@ -1,9 +1,7 @@
 require.config({
-  packages: [{
-    name: "diff_match_patch",
-    location: "//cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119",
-    main: "diff_match_patch"
-  }]
+  paths: {
+    "diff_match_patch": "../nbextensions/multi_outputs/lib/diff_match_patch"
+  }
 });
 
 define([
