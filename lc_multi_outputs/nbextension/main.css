@@ -90,6 +90,20 @@
     height: 100%;
 }
 
+.cell-status-interuption .input_prompt {
+    background-color: #ffc125;
+    height: 100%;
+}
+
+.cell-status-interuption .multi-output-tabs .out_prompt_bg {
+    background-color: #ffc125;
+}
+
+.cell-status-interuption .output_wrapper .out_prompt_bg {
+    background-color: #ffc125;
+    height: 100%;
+}
+
 .multi-output-container.ui-tabs {
     border: none;
     padding: 0px;

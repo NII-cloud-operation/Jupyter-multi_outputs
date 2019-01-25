@@ -38,14 +38,17 @@ define([
         cell.element.removeClass('cell-status-success');
         cell.element.removeClass('cell-status-error');
         cell.element.removeClass('cell-status-inqueue');
+		cell.element.removeClass('cell-status-interuption');
 
         if(first == true) {
             cell.element.addClass('cell-status-inqueue');
         } else {
-            if (msg.content.status != "ok" && msg.content.status != "aborted") {
+            if (msg.content.status != "ok" && msg.content.status != "abort") {
                 cell.element.addClass('cell-status-error');
-            } else if (msg.content.status != "aborted") {
+            } else if (msg.content.status != "abort") {
                 cell.element.addClass('cell-status-success');
+            } else if (msg.content.status == "abort"){
+                cell.element.addClass('cell-status-interuption');
             }
         }
     }
