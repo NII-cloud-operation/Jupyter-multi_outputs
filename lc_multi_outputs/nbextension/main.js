@@ -136,7 +136,6 @@ define([
         var pinned_output = {
             execution_count: pinned_output_data.execution_count,
             outputarea: pinned_outputarea,
-            data: pinned_output_data
         }
 
         var tab_container = cell.element.find('div.multi-output-container');
@@ -282,17 +281,17 @@ define([
 
         var max = Math.max(rest_num, 1);
         while(pinned_output_areas.length > max) {
-            remove_pinned_output(cell,
-                                 pinned_output_areas[0],
-                                 pinned_output_areas[0].tab_id)
+            remove_pinned_output(cell, pinned_output_areas[0])
         }
     }
 
     function remove_pinned_output(cell, pinned_output_area) {
-        cell.pinned_outputs.splice(
-            cell.pinned_outputs.indexOf(pinned_output_area), 1);
-        cell.metadata.pinned_outputs.splice(
-            cell.metadata.pinned_outputs.indexOf(pinned_output_area.data), 1);
+        var index = cell.pinned_outputs.indexOf(pinned_output_area);
+        if (index < 0) {
+            return;
+        }
+        cell.pinned_outputs.splice(index, 1);
+        cell.metadata.pinned_outputs.splice(index, 1);
 
         var tab_id = pinned_output_area.tab_id;
         cell.element.find('ul > li#tab-' + tab_id).remove();
