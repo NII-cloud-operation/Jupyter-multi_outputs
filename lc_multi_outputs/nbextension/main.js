@@ -1,7 +1,9 @@
 require.config({
-  paths: {
-    "diff_match_patch": "../nbextensions/multi_outputs/lib/diff_match_patch"
-  }
+    map: {
+        '*': {
+            "diff_match_patch": "nbextensions/multi_outputs/lib/diff_match_patch"
+        },
+    },
 });
 
 define([
