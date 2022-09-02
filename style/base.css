@@ -1,0 +1,159 @@
+/*
+    See the JupyterLab Developer Guide for useful CSS Patterns:
+
+    https://jupyterlab.readthedocs.io/en/stable/developer/css.html
+*/
+
+.output_wrapper .out_prompt_bg {
+  padding: 0px 0.4em;
+  position: absolute;
+  border-radius: 2px;
+  z-index: -1;
+}
+
+.multi-output-tabs ul.nav-tabs {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.4em 0.4em 0px 0.4em;
+  -webkit-box-flex: 1;
+  -moz-box-flex: 1;
+  box-flex: 1;
+  flex: 1;
+}
+
+.multi-outputs-ui,
+.multi-outputs-diff-ui {
+  text-align: left;
+  padding-top: 2px;
+  display: block;
+}
+
+.multi-outputs-ui .buttons,
+.multi-outputs-diff-ui .buttons {
+  display: inline-block;
+}
+
+.multi-outputs-ui .btn,
+.multi-outputs-diff-ui .btn {
+  padding: 0px;
+  font-size: 90%;
+}
+
+.multi-outputs-ui .btn-default,
+.multi-outputs-diff-ui .btn-default {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.multi-outputs-ui .btn-default:hover,
+.multi-outputs-diff-ui .btn-default:hover {
+  background-color: #e6e6e6;
+  border-color: #adadad;
+}
+
+.multi-output-container .output_subarea {
+  font-size: 14px;
+}
+
+.multi-output-container .prompt {
+  font-size: 14px;
+}
+
+.cell-status-success .jp-InputPrompt,
+.cell-status-success .jp-OutputPrompt {
+  background-color: #bcffbc;
+}
+
+.cell-status-error .jp-InputPrompt,
+.cell-status-error .jp-OutputPrompt {
+  background-color: #ffc0cb;
+}
+
+.cell-status-inqueue .jp-InputPrompt,
+.cell-status-inqueue .jp-OutputPrompt {
+  background-color: #e0ffff;
+}
+
+.multi-output-container.ui-tabs {
+  border: none;
+  padding: 0px;
+}
+
+.multi-output-container .ui-tabs-panel {
+  padding: 0px;
+}
+
+.multi-output-tabs .ui-tabs-anchor {
+  font-size: 0.6em;
+}
+
+.multi-output-tabs .ui-tabs-nav {
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-bottom-left-radius: 0px;
+  border-bottom-right-radius: 0px;
+  background: transparent;
+}
+
+.multi-output-tabs .ui-tabs-nav button.ui-button-icon-only {
+  border: none;
+  background: transparent;
+}
+
+.multi-output-tabs li.ui-state-default {
+  background: #eee !important;
+}
+
+.multi-output-tabs li.ui-state-default a {
+  color: #aaa;
+}
+
+.multi-output-tabs li.ui-state-active {
+  background: white !important;
+}
+
+.multi-output-tabs li.ui-state-active a {
+  color: black;
+}
+
+.multi-outputs-diff.ui-dialog-content {
+  overflow: hidden;
+}
+
+.multi-outputs-diff .multi-outputs-search-bar {
+  margin: 1px;
+  padding: 1px;
+  width: 100%;
+}
+
+.multi-outputs-diff .multi-outputs-search-bar .label {
+  color: black;
+  font-weight: bold;
+  font-size: 10px;
+}
+
+.multi-outputs-diff .multi-outputs-search-bar input {
+  font-size: 10px;
+  width: 250px;
+}
+
+.search-highlight {
+  background-color: #fe3;
+}
+
+.ui-widget-header {
+  background: #e7e7e7;
+}
+
+div.cell div.multi-output-container {
+  background: unset;
+}
+
+.jp-Dialog-content {
+  max-height: 520px;
+}
+
+.lc-toolbar-button .jp-Icon {
+  color: var(--jp-inverse-layout-color3);
+}
