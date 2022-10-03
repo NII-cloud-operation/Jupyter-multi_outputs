@@ -1,6 +1,6 @@
 {
   "name": "lc_multi_outputs",
-  "version": "0.1.0",
+  "version": "2.1.0",
   "description": "Multiple outputs as tabs",
   "keywords": [
     "jupyter",

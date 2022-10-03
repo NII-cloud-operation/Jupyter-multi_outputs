@@ -37,7 +37,10 @@ version = (
     .replace("-alpha.", "a")
     .replace("-beta.", "b")
     .replace("-rc.", "rc")
-) 
+)
+
+with open(os.path.join(LIB, 'diff_match_patch.js'), 'wb') as f:
+    f.write(urlopen('https://github.com/google/diff-match-patch/raw/master/javascript/diff_match_patch.js').read())
 
 setup_args = dict(
     name=name,
