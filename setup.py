@@ -3,11 +3,18 @@ lc_multi_outputs setup
 """
 import json
 import sys
+import os
 from pathlib import Path
 
 import setuptools
 
+try:
+    from urllib.request import urlopen
+except ImportError:
+    from urllib import urlopen
+
 HERE = Path(__file__).parent.resolve()
+LIB = os.path.join(HERE, 'lc_multi_outputs', 'nbextension', 'lib')
 
 # Get the package info from package.json
 pkg_json = json.loads((HERE / "package.json").read_bytes())
