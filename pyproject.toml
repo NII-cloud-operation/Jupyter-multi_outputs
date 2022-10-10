@@ -14,4 +14,4 @@ build_cmd = "build:prod"
 npm = ["jlpm"]
 
 [tool.check-manifest]
-ignore = ["lc_multi_outputs/labextension/**", "yarn.lock", ".*", "package-lock.json"]
+ignore = ["lc_multi_outputs/labextension/**", "yarn.lock", ".*", "package-lock.json", "lc_multi_outputs/nbextension/lib/diff_match_patch.js"]

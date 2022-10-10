@@ -46,9 +46,6 @@ version = (
     .replace("-rc.", "rc")
 )
 
-with open(os.path.join(LIB, 'diff_match_patch.js'), 'wb') as f:
-    f.write(urlopen('https://github.com/google/diff-match-patch/raw/master/javascript/diff_match_patch.js').read())
-
 setup_args = dict(
     name=name,
     version=version,
@@ -89,10 +86,22 @@ try:
         npm_builder,
         get_data_files
     )
+    def download_diff_match_patch():
+        if not os.path.exists(LIB):
+            os.mkdir(LIB)
+        with open(os.path.join(LIB, 'diff_match_patch.js'), 'wb') as f:
+            f.write(urlopen('https://github.com/google/diff-match-patch/raw/master/javascript/diff_match_patch.js').read())
+
+    pre_dist = pre_develop = download_diff_match_patch
     post_develop = npm_builder(
         build_cmd="install:extension", source_dir="src", build_dir=lab_path
     )
-    setup_args["cmdclass"] = wrap_installers(post_develop=post_develop, ensured_targets=ensured_targets)
+    setup_args["cmdclass"] = wrap_installers(
+        pre_develop=pre_develop,
+        pre_dist=pre_dist,
+        post_develop=post_develop,
+        ensured_targets=ensured_targets
+    )
     setup_args["data_files"] = get_data_files(data_files_spec)
 except ImportError as e:
     import logging
