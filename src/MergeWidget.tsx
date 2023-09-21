@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { ReactWidget } from '@jupyterlab/apputils';
 
 import { Editor, MergeView } from 'codemirror';
+import 'codemirror/lib/codemirror.css';
 import 'codemirror/addon/merge/merge';
 import 'codemirror/addon/merge/merge.css';
 import 'codemirror/addon/search/searchcursor';
@@ -53,8 +54,8 @@ export function Merge({
     valueEl.current.innerHTML = '';
     const mergeView = new MergeView(valueEl.current, {
       mode: 'text/plain',
-      value,
-      orig,
+      value: value,
+      orig: orig,
       lineNumbers: true,
       revertButtons: false,
       lineWrapping: true,

@@ -1,5 +1,5 @@
-import { IObservableJSON } from '@jupyterlab/observables';
 import { PinnedOutput } from './pinned-outputs';
+import { ICellModel } from '@jupyterlab/cells';
 
 const tabsKey = 'pinned_outputs';
 const tabIndexKey = 'pinnedOutputTabIndex';
@@ -10,47 +10,47 @@ const tabIndexKey = 'pinnedOutputTabIndex';
  * @param rest 残す個数
  */
 export function leaveLatestPinnedOutputs(
-  metadata: IObservableJSON,
+  model: ICellModel,
   rest: number
 ): void {
-  const outputs = getPinnedOutputs(metadata);
-  setPinnedOutputs(metadata, latest(rest, outputs));
+  const outputs = getPinnedOutputs(model);
+  setPinnedOutputs(model, latest(rest, outputs));
 }
 
-export function getPinnedOutputs(metadata: IObservableJSON): PinnedOutput[] {
-  return (metadata.get(tabsKey) || []) as PinnedOutput[];
+export function getPinnedOutputs(model: ICellModel): PinnedOutput[] {
+  return (model.getMetadata(tabsKey) || []) as PinnedOutput[];
 }
 
 export function setPinnedOutputs(
-  metadata: IObservableJSON,
+  model: ICellModel,
   outputs: PinnedOutput[]
 ): void {
-  metadata.set(tabsKey, outputs);
+  model.setMetadata(tabsKey, outputs);
 }
 
 function latest<T>(n: number, items: T[]): T[] {
   return items.splice(-n);
 }
 
-export function resetPinnedOutputs(metadata: IObservableJSON): void {
-  metadata.delete(tabsKey);
+export function resetPinnedOutputs(model: ICellModel): void {
+  model.deleteMetadata(tabsKey);
 }
 
-export function getOutputTabIndex(metadata: IObservableJSON): number {
-  return Number(metadata.get(tabIndexKey) || 0);
+export function getOutputTabIndex(model: ICellModel): number {
+  return Number(model.getMetadata(tabIndexKey) || 0);
 }
 
 export function setOutputTabIndex(
-  metadata: IObservableJSON,
+  model: ICellModel,
   value: number
 ): void {
-  metadata.set(tabIndexKey, value);
+  model.setMetadata(tabIndexKey, value);
 }
 
-export function selectCurrentOutputTab(metadata: IObservableJSON): void {
-  setOutputTabIndex(metadata, 0);
+export function selectCurrentOutputTab(model: ICellModel): void {
+  setOutputTabIndex(model, 0);
 }
 
-export function selectLatestOutputTab(metadata: IObservableJSON): void {
-  setOutputTabIndex(metadata, 1);
+export function selectLatestOutputTab(model: ICellModel): void {
+  setOutputTabIndex(model, 1);
 }

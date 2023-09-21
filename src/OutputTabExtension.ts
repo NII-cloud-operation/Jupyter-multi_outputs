@@ -20,7 +20,11 @@ export class OutputTabExtension
         change.newValues.forEach(cellModel => {
           const cell = getCellByModelId(panel.content, cellModel.id);
           if (cell && isCodeCellModel(cellModel)) {
-            initCell(cell as CodeCell);
+            cell.inViewportChanged.connect((_, isAttached) => {
+              if(isAttached) {
+                initCell(cell as CodeCell);
+              }
+            });
           }
         });
       }
