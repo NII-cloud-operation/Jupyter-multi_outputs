@@ -40,10 +40,7 @@ export function getOutputTabIndex(model: ICellModel): number {
   return Number(model.getMetadata(tabIndexKey) || 0);
 }
 
-export function setOutputTabIndex(
-  model: ICellModel,
-  value: number
-): void {
+export function setOutputTabIndex(model: ICellModel, value: number): void {
   model.setMetadata(tabIndexKey, value);
 }
 

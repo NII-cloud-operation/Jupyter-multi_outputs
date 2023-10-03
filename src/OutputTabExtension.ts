@@ -21,7 +21,7 @@ export class OutputTabExtension
           const cell = getCellByModelId(panel.content, cellModel.id);
           if (cell && isCodeCellModel(cellModel)) {
             cell.inViewportChanged.connect((_, isAttached) => {
-              if(isAttached) {
+              if (isAttached) {
                 initCell(cell as CodeCell);
               }
             });
