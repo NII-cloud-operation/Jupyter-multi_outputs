@@ -66,9 +66,7 @@ export function Merge({
     });
     markText(mergeView.editor(), search);
     const right = mergeView.rightOriginal();
-    if (right){
-      markText(right, search);
-    }
+    if (right) markText(right, search);
   }, [valueEl, search]);
 
   return (
