@@ -12,7 +12,7 @@ import { SearchBar } from './components/SearchBar';
 
 export class MergeWidget extends ReactWidget {
   constructor(
-    private value: string, 
+    private value: string,
     private orig: string
   ) {
     super();
