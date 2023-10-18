@@ -4,7 +4,7 @@ USER root
 
 ### extensions for jupyter
 COPY . /tmp/multi_outputs
-RUN pip3 --no-cache-dir install jupyter_nbextensions_configurator \
+RUN pip --no-cache-dir install jupyter_nbextensions_configurator \
     /tmp/multi_outputs
 
 RUN jupyter nbclassic-extension install --py jupyter_nbextensions_configurator --sys-prefix && \
