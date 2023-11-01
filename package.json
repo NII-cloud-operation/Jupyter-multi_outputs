@@ -30,6 +30,9 @@
     "type": "git",
     "url": "https://github.com/entap/lc_multi_outputs.git"
   },
+  "workspaces": [
+    "ui-tests"
+  ],
   "scripts": {
     "build": "jlpm build:lib && jlpm build:labextension:dev",
     "build:labextension": "jupyter labextension build .",
