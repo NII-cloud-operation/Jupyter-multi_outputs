@@ -52,8 +52,6 @@ jobs:
         jlpm run eslint:check
         python -m pip install .
 
-        jupyter server extension list 2>&1 | grep -ie "lc_multi_outputs.*OK"
-
         jupyter labextension list 2>&1 | grep -ie "lc_multi_outputs.*OK"
         python -m jupyterlab.browser_check
 
