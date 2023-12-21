@@ -16,7 +16,7 @@ export function pinOutput(cell: CodeCell): void {
     console.debug('cell is running');
     return;
   }
-  const outputs = getPinnedOutputs(cell.model.metadata);
+  const outputs = getPinnedOutputs(cell.model);
   if (outputs.some(o => o.execution_count === cell.model.executionCount)) {
     console.debug('this output is already exist');
     return;
@@ -28,10 +28,10 @@ export function pinOutput(cell: CodeCell): void {
     outputs: values
   };
   setPinnedOutputs(
-    cell.model.metadata,
+    cell.model,
     [...outputs, output].splice(-config.maxPinnedOutputs)
   );
-  selectLatestOutputTab(cell.model.metadata);
+  selectLatestOutputTab(cell.model);
 
-  console.debug('metadata:', getPinnedOutputs(cell.model.metadata));
+  console.debug('metadata:', getPinnedOutputs(cell.model));
 }

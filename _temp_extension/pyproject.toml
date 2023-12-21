@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "lc_multi_outputs"
 readme = "README.md"
-license = { file = "LICENSE.txt" }
+license = { file = "LICENSE" }
 requires-python = ">=3.8"
 classifiers = [
     "Framework :: Jupyter",
@@ -30,12 +30,6 @@ source = "nodejs"
 
 [tool.hatch.metadata.hooks.nodejs]
 fields = ["description", "authors", "urls"]
-
-# Used to call hatch_build.py
-[tool.hatch.build.hooks.custom]
-
-[tool.hatch.build.targets.wheel.force-include]
-"lc_multi_outputs/nbextension/lib/diff_match_patch.js" = "lc_multi_outputs/nbextension/lib/diff_match_patch.js"
 
 [tool.hatch.build.targets.sdist]
 artifacts = ["lc_multi_outputs/labextension"]
