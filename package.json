@@ -7,9 +7,9 @@
     "jupyterlab",
     "jupyterlab-extension"
   ],
-  "homepage": "https://github.com/entap/lc_multi_outputs",
+  "homepage": "https://github.com/NII-cloud-operation/Jupyter-multi_outputs",
   "bugs": {
-    "url": "https://github.com/entap/lc_multi_outputs/issues"
+    "url": "https://github.com/NII-cloud-operation/Jupyter-multi_outputs/issues"
   },
   "license": "BSD-3-Clause",
   "author": {
@@ -28,7 +28,7 @@
   "style": "style/index.css",
   "repository": {
     "type": "git",
-    "url": "https://github.com/entap/lc_multi_outputs.git"
+    "url": "https://github.com/NII-cloud-operation/Jupyter-multi_outputs.git"
   },
   "workspaces": [
     "ui-tests"
