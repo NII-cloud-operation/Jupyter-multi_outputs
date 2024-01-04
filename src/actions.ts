@@ -30,7 +30,7 @@ export function removeOutputOnSelection(notebook: Notebook): void {
   console.debug('remove outputs on selection');
   getSelectedOrActiveCells(notebook).forEach(cell => {
     if (isCodeCellModel(cell.model)) {
-      leaveLatestPinnedOutputs(cell.model.metadata, 1);
+      leaveLatestPinnedOutputs(cell.model, 1);
     }
   });
 }
@@ -54,7 +54,7 @@ export function removeOutputsInBelowSection(notebook: Notebook): void {
   console.debug('remove outputs in below section');
   getCellsInBelowSection(notebook).forEach(cell => {
     if (isCodeCellModel(cell.model)) {
-      leaveLatestPinnedOutputs(cell.model.metadata, 1);
+      leaveLatestPinnedOutputs(cell.model, 1);
     }
   });
 }
@@ -78,7 +78,7 @@ export function removeOutputsInBelowAll(notebook: Notebook): void {
   console.debug('remove outputs in below all');
   getCellsInBelowAll(notebook).forEach(cell => {
     if (isCodeCellModel(cell.model)) {
-      leaveLatestPinnedOutputs(cell.model.metadata, 1);
+      leaveLatestPinnedOutputs(cell.model, 1);
     }
   });
 }

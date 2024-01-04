@@ -4,6 +4,7 @@ import { OutputTabs } from './components/OutputTabs';
 import { CodeCell } from '@jupyterlab/cells';
 import {
   getOutputTabIndex,
+  selectCurrentOutputTab,
   getPinnedOutputs,
   resetPinnedOutputs,
   setPinnedOutputs
@@ -20,10 +21,14 @@ export class OutputTabsWidget extends ReactWidget {
 
   render(): JSX.Element {
     return (
-      <UseSignal signal={this.cell.model.metadata.changed}>
-        {() => {
+      <UseSignal signal={this.cell.model.metadataChanged}>
+        {(_, args) => {
           const tabs = createTabs(this.cell);
-          const selectedIndex = getOutputTabIndex(this.cell.model.metadata);
+          if (args && args.key === 'scrolled') {
+            // スクロールの変更の場合は最初のタブを選択状態にする
+            selectCurrentOutputTab(this.cell.model);
+          }
+          const selectedIndex = getOutputTabIndex(this.cell.model);
           if (tabs.length > 1) {
             return <OutputTabs tabs={tabs} selectedIndex={selectedIndex} />;
           } else {
@@ -57,10 +62,16 @@ export class PinButtonWidget extends ReactWidget {
 }
 
 function PinButton({ onClick }: { onClick: () => unknown }): JSX.Element {
+  //! Lib4.xでは上階層に"jp-OutputArea-promptOverlay"が追加されたため、z-indexを指定してボタンを押せるようにする
   return (
     <div className="multi-outputs-ui">
       <div className="buttons">
-        <button type="button" className="btn btn-default" onClick={onClick}>
+        <button
+          type="button"
+          className="btn btn-default"
+          style={{ position: 'relative', zIndex: 10000 }}
+          onClick={onClick}
+        >
           <i className="fa fa-fw fa-thumb-tack" />
         </button>
       </div>
@@ -82,17 +93,17 @@ export function outputAreaWithPinButton(
 }
 
 function removePinnedOutput(cell: CodeCell, executionCount: number) {
-  const outputs = getPinnedOutputs(cell.model.metadata);
+  const outputs = getPinnedOutputs(cell.model);
   const index = outputs.findIndex(o => o.execution_count === executionCount);
   if (index < 0) {
     return;
   }
   outputs.splice(index, 1);
   // setだけだとなぜかmetadata.changedが発火されないので一旦削除して作り直す
-  resetPinnedOutputs(cell.model.metadata);
-  setPinnedOutputs(cell.model.metadata, outputs);
+  resetPinnedOutputs(cell.model);
+  setPinnedOutputs(cell.model, outputs);
 
-  console.debug('metadata:', getPinnedOutputs(cell.model.metadata));
+  console.debug('metadata:', getPinnedOutputs(cell.model));
 }
 
 function outputAreaWithMergeButton(
@@ -128,12 +139,12 @@ function createTabs(cell: CodeCell) {
       label: '*',
       outputNode: cell.outputArea.parent?.node
     },
-    ...getPinnedOutputs(cell.model.metadata)
+    ...getPinnedOutputs(cell.model)
       .map(output => {
         const outputArea = new OutputArea({
           model: new OutputAreaModel({
             values: output.outputs,
-            trusted: !!cell.model.metadata.get('trusted')
+            trusted: !!cell.model.getMetadata('trusted')
           }),
           rendermime: cell.outputArea.rendermime
         });

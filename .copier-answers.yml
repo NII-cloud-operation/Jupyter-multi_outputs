@@ -1,0 +1,14 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v4.1.0
+_src_path: https://github.com/jupyterlab/extension-template
+author_email: ii@entap.co.jp
+author_name: ii masamitsu
+has_binder: true
+has_settings: true
+kind: frontend
+labextension_name: lc_multi_outputs
+project_short_description: Multiple outputs as tabs
+python_name: lc_multi_outputs
+repository: https://github.com/entap/lc_multi_outputs.git
+test: false
+
