@@ -2,6 +2,7 @@ import { extensionId } from './plugin';
 import { ICommandPalette } from '@jupyterlab/apputils';
 import { INotebookTracker } from '@jupyterlab/notebook';
 import { JupyterFrontEnd } from '@jupyterlab/application';
+import { TranslationBundle } from '@jupyterlab/translation';
 import { CommandRegistry } from '@lumino/commands';
 import {
   pinOutputsInBelowSection,
@@ -14,12 +15,13 @@ import {
 
 export function registerCommands(
   app: JupyterFrontEnd,
+  trans: TranslationBundle,
   notebooks: INotebookTracker,
   commandPalette: ICommandPalette
 ): void {
   const category = 'Notebook';
 
-  createCommands(app, notebooks).forEach(([id, options]) => {
+  createCommands(app, trans, notebooks).forEach(([id, options]) => {
     const command = extensionId + ':' + id;
     app.commands.addCommand(command, options);
     commandPalette.addItem({ command, category });
@@ -28,27 +30,29 @@ export function registerCommands(
 
 function createCommands(
   app: JupyterFrontEnd,
+  trans: TranslationBundle,
   notebooks: INotebookTracker
 ): [string, CommandRegistry.ICommandOptions][] {
   return [
-    createPinOutputOnSelectionCommand(app, notebooks),
-    createRemoveOutputOnSelectionCommand(app, notebooks),
-    createPinOutputInBelowSectionCommand(app, notebooks),
-    createRemoveOutputInBelowSectionCommand(app, notebooks),
-    createPinOutputInBelowAllCommand(app, notebooks),
-    createRemoveOutputInBelowAllCommand(app, notebooks)
+    createPinOutputOnSelectionCommand(app, trans, notebooks),
+    createRemoveOutputOnSelectionCommand(app, trans, notebooks),
+    createPinOutputInBelowSectionCommand(app, trans, notebooks),
+    createRemoveOutputInBelowSectionCommand(app, trans, notebooks),
+    createPinOutputInBelowAllCommand(app, trans, notebooks),
+    createRemoveOutputInBelowAllCommand(app, trans, notebooks)
   ];
 }
 
 function createPinOutputOnSelectionCommand(
   app: JupyterFrontEnd,
+  trans: TranslationBundle,
   notebooks: INotebookTracker
 ): [string, CommandRegistry.ICommandOptions] {
   return [
     'pin-outputs-on-selection',
     {
-      label: 'Pin Outputs On Selection',
-      caption: 'Pin Outputs On Selection',
+      label: trans.__('Pin Outputs On Selection'),
+      caption: trans.__('Pin Outputs On Selection'),
       execute: () => {
         const current = getCurrentNotebookPanel(app, notebooks);
         if (current) {
@@ -61,13 +65,14 @@ function createPinOutputOnSelectionCommand(
 
 function createRemoveOutputOnSelectionCommand(
   app: JupyterFrontEnd,
+  trans: TranslationBundle,
   notebooks: INotebookTracker
 ): [string, CommandRegistry.ICommandOptions] {
   return [
     'remove-outputs-on-selection',
     {
-      label: 'Remove Outputs On Selection',
-      caption: 'Remove Outputs On Selection',
+      label: trans.__('Remove Outputs On Selection'),
+      caption: trans.__('Remove Outputs On Selection'),
       execute: () => {
         const current = getCurrentNotebookPanel(app, notebooks);
         if (current) {
@@ -80,13 +85,14 @@ function createRemoveOutputOnSelectionCommand(
 
 function createPinOutputInBelowSectionCommand(
   app: JupyterFrontEnd,
+  trans: TranslationBundle,
   notebooks: INotebookTracker
 ): [string, CommandRegistry.ICommandOptions] {
   return [
     'pin-outputs-in-below-section',
     {
-      label: 'Pin Outputs In Below Section',
-      caption: 'Pin Outputs In Below Section',
+      label: trans.__('Pin Outputs In Below Section'),
+      caption: trans.__('Pin Outputs In Below Section'),
       execute: () => {
         const current = getCurrentNotebookPanel(app, notebooks);
         if (current) {
@@ -99,13 +105,14 @@ function createPinOutputInBelowSectionCommand(
 
 function createRemoveOutputInBelowSectionCommand(
   app: JupyterFrontEnd,
+  trans: TranslationBundle,
   notebooks: INotebookTracker
 ): [string, CommandRegistry.ICommandOptions] {
   return [
     'remove-outputs-in-below-section',
     {
-      label: 'Remove Outputs In Below Section',
-      caption: 'Remove Outputs In Below Section',
+      label: trans.__('Remove Outputs In Below Section'),
+      caption: trans.__('Remove Outputs In Below Section'),
       execute: () => {
         const current = getCurrentNotebookPanel(app, notebooks);
         if (current) {
@@ -118,13 +125,14 @@ function createRemoveOutputInBelowSectionCommand(
 
 function createPinOutputInBelowAllCommand(
   app: JupyterFrontEnd,
+  trans: TranslationBundle,
   notebooks: INotebookTracker
 ): [string, CommandRegistry.ICommandOptions] {
   return [
     'pin-outputs-in-below-all',
     {
-      label: 'Pin Outputs In Below All',
-      caption: 'Pin Outputs In Below All',
+      label: trans.__('Pin Outputs In Below All'),
+      caption: trans.__('Pin Outputs In Below All'),
       execute: () => {
         const current = getCurrentNotebookPanel(app, notebooks);
         if (current) {
@@ -137,13 +145,14 @@ function createPinOutputInBelowAllCommand(
 
 function createRemoveOutputInBelowAllCommand(
   app: JupyterFrontEnd,
+  trans: TranslationBundle,
   notebooks: INotebookTracker
 ): [string, CommandRegistry.ICommandOptions] {
   return [
     'remove-outputs-in-below-all',
     {
-      label: 'Remove Outputs In Below All',
-      caption: 'Remove Outputs In Below All',
+      label: trans.__('Remove Outputs In Below All'),
+      caption: trans.__('Remove Outputs In Below All'),
       execute: () => {
         const current = getCurrentNotebookPanel(app, notebooks);
         if (current) {

@@ -25,6 +25,9 @@ dependencies = [
 ]
 dynamic = ["version", "description", "authors", "urls", "keywords"]
 
+[project.entry-points."jupyterlab.locale"]
+lc_multi_outputs = "lc_multi_outputs"
+
 [tool.hatch.version]
 source = "nodejs"
 

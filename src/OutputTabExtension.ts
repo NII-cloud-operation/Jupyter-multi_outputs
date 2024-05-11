@@ -3,6 +3,7 @@ import { INotebookModel, Notebook, NotebookPanel } from '@jupyterlab/notebook';
 import { DocumentRegistry } from '@jupyterlab/docregistry';
 import { IDisposable, DisposableDelegate } from '@lumino/disposable';
 import { CodeCell, isCodeCellModel } from '@jupyterlab/cells';
+import { TranslationBundle } from '@jupyterlab/translation';
 
 import { outputAreaWithPinButton, OutputTabsWidget } from './OutputTabsWidget';
 import { pinOutput } from './pinOutput';
@@ -11,6 +12,8 @@ import { registerToolbarButtons } from './toolbar';
 export class OutputTabExtension
   implements DocumentRegistry.IWidgetExtension<NotebookPanel, INotebookModel>
 {
+  constructor(private trans: TranslationBundle) {}
+
   createNew(
     panel: NotebookPanel,
     context: DocumentRegistry.IContext<INotebookModel>
@@ -22,7 +25,7 @@ export class OutputTabExtension
           if (cell && isCodeCellModel(cellModel)) {
             cell.inViewportChanged.connect((_, isAttached) => {
               if (isAttached) {
-                initCell(cell as CodeCell);
+                initCell(this.trans, cell as CodeCell);
               }
             });
           }
@@ -30,7 +33,7 @@ export class OutputTabExtension
       }
     });
 
-    const toolbarButtons = registerToolbarButtons(panel);
+    const toolbarButtons = registerToolbarButtons(this.trans, panel);
 
     return new DisposableDelegate(() => {
       toolbarButtons.forEach(b => b.dispose());
@@ -38,8 +41,8 @@ export class OutputTabExtension
   }
 }
 
-function initCell(cell: CodeCell) {
-  initOutputTabs(cell);
+function initCell(trans: TranslationBundle, cell: CodeCell) {
+  initOutputTabs(trans, cell);
   // アウトプットの初期化
   outputAreaWithPinButton(cell.outputArea, () => {
     pinOutput(cell);
@@ -54,8 +57,8 @@ function initCell(cell: CodeCell) {
   });
 }
 
-function initOutputTabs(cell: CodeCell) {
-  Widget.attach(new OutputTabsWidget(cell), cell.node);
+function initOutputTabs(trans: TranslationBundle, cell: CodeCell) {
+  Widget.attach(new OutputTabsWidget(trans, cell), cell.node);
 }
 
 function getCellByModelId(notebook: Notebook, cellModelId: string) {

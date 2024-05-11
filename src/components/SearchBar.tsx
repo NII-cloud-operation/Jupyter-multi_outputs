@@ -1,10 +1,12 @@
 import React, { FormEvent } from 'react';
+import { TranslationBundle } from '@jupyterlab/translation';
 
-export function SearchBar({
-  onSubmit
-}: {
-  onSubmit: (data: { keyword: string }) => unknown;
-}): JSX.Element {
+export type SearchBarProps = {
+  trans: TranslationBundle;
+  onSubmit: (data: { keyword: string }) => void;
+};
+
+export function SearchBar({ trans, onSubmit }: SearchBarProps): JSX.Element {
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
@@ -15,9 +17,9 @@ export function SearchBar({
 
   return (
     <form onSubmit={handleSubmit}>
-      <label htmlFor="keyword">Search</label>
+      <label htmlFor="keyword">{trans.__('Search: ')}</label>
       <input type="text" id="keyword" name="keyword" />
-      <input type="submit" value="検索" />
+      <input type="submit" value={trans.__('Search')} />
     </form>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { ReactWidget } from '@jupyterlab/apputils';
+import { TranslationBundle } from '@jupyterlab/translation';
 
 import { Editor, MergeView } from 'codemirror';
 import 'codemirror/lib/codemirror.css';
@@ -12,6 +13,7 @@ import { SearchBar } from './components/SearchBar';
 
 export class MergeWidget extends ReactWidget {
   constructor(
+    private trans: TranslationBundle,
     private value: string,
     private orig: string
   ) {
@@ -19,22 +21,22 @@ export class MergeWidget extends ReactWidget {
   }
 
   render(): JSX.Element {
-    return <MergePage value={this.value} orig={this.orig} />;
+    return <MergePage trans={this.trans} value={this.value} orig={this.orig} />;
   }
 }
 
-export function MergePage({
-  value,
-  orig
-}: {
+export type MergePageProps = {
+  trans: TranslationBundle;
   value: string;
   orig: string;
-}): JSX.Element {
+};
+
+export function MergePage({ trans, value, orig }: MergePageProps): JSX.Element {
   const [search, setSearch] = React.useState('');
   return (
     <div>
       <Merge value={value} orig={orig} search={search} />
-      <SearchBar onSubmit={data => setSearch(data.keyword)} />
+      <SearchBar trans={trans} onSubmit={data => setSearch(data.keyword)} />
     </div>
   );
 }

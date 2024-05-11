@@ -1,10 +1,12 @@
 import { Dialog, showDialog } from '@jupyterlab/apputils';
 import { CodeCell } from '@jupyterlab/cells';
 import { OutputArea } from '@jupyterlab/outputarea';
+import { TranslationBundle } from '@jupyterlab/translation';
 import { MergeWidget } from './MergeWidget';
 import { getOutputText } from './getOutputText';
 
 export function showOutputAreaDiffDialog(
+  trans: TranslationBundle,
   cell: CodeCell,
   pinnedExecutionCount: number,
   pinnedOutputArea: OutputArea
@@ -12,6 +14,7 @@ export function showOutputAreaDiffDialog(
   const value = getOutputText(cell.outputArea);
   const orig = getOutputText(pinnedOutputArea);
   showDiffDialog(
+    trans,
     value,
     orig,
     String(cell.model.executionCount || '*'),
@@ -20,6 +23,7 @@ export function showOutputAreaDiffDialog(
 }
 
 function showDiffDialog(
+  trans: TranslationBundle,
   value: string,
   other: string,
   label: string,
@@ -31,7 +35,7 @@ function showDiffDialog(
   }
   showDialog({
     title: `Diff: Out[${label}] <- Out[${otherLabel}]`,
-    body: new MergeWidget(value, other),
-    buttons: [Dialog.cancelButton({ label: '閉じる' })]
+    body: new MergeWidget(trans, value, other),
+    buttons: [Dialog.cancelButton({ label: trans.__('Close') })]
   });
 }

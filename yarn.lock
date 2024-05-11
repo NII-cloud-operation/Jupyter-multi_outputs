@@ -5682,6 +5682,7 @@ __metadata:
     "@jupyterlab/outputarea": ^4.0.3
     "@jupyterlab/rendermime": ^4.0.3
     "@jupyterlab/settingregistry": ^4.0.3
+    "@jupyterlab/translation": ^4.0.3
     "@jupyterlab/ui-components": ^4.0.3
     "@lumino/algorithm": ^2.0.0
     "@lumino/commands": ^2.0.1
