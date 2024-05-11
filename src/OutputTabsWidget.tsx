@@ -17,6 +17,7 @@ import $ from 'jquery';
 export class OutputTabsWidget extends ReactWidget {
   constructor(private cell: CodeCell) {
     super();
+    this.addClass('multi-output-widget');
   }
 
   render(): JSX.Element {
