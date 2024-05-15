@@ -4,11 +4,28 @@
     https://jupyterlab.readthedocs.io/en/stable/developer/css.html
 */
 
+.multi-output-widget .jp-Cell-outputWrapper {
+  margin-top: 0 !important;
+}
+
+.multi-output-wrapper {
+  padding: 0 !important;
+}
+
 .output_wrapper .out_prompt_bg {
   padding: 0px 0.4em;
   position: absolute;
   border-radius: 2px;
   z-index: -1;
+}
+
+.multi-output-tabs {
+  display: flex;
+}
+
+.multi-output-tabs .out_prompt_bg {
+  width: calc(var(--jp-cell-prompt-width) + 8px);
+  flex: 0 0 calc(var(--jp-cell-prompt-width) + 8px);
 }
 
 .multi-output-tabs ul.nav-tabs {
@@ -19,6 +36,15 @@
   -moz-box-flex: 1;
   box-flex: 1;
   flex: 1;
+}
+
+.multi-output-widget .jp-Collapser {
+  display: none;
+}
+
+.multi-output-widget .jp-OutputPrompt {
+  width: calc(var(--jp-cell-prompt-width) + 8px);
+  flex: 0 0 calc(var(--jp-cell-prompt-width) + 8px);
 }
 
 .multi-outputs-ui,
@@ -59,23 +85,37 @@
   font-size: 14px;
 }
 
-.cell-status-success .jp-InputPrompt,
-.cell-status-success .jp-OutputPrompt {
+.jp-CodeCell.cell-status-success .jp-InputPrompt,
+.jp-CodeCell.cell-status-success .jp-OutputPrompt,
+.jp-CodeCell.cell-status-success:not(.jp-mod-active) .jp-Collapser,
+.jp-CodeCell.cell-status-success .out_prompt_bg {
   background-color: #bcffbc;
 }
 
-.cell-status-error .jp-InputPrompt,
-.cell-status-error .jp-OutputPrompt {
+.jp-CodeCell.cell-status-error .jp-InputPrompt,
+.jp-CodeCell.cell-status-error .jp-OutputPrompt,
+.jp-CodeCell.cell-status-error:not(.jp-mod-active) .jp-Collapser,
+.jp-CodeCell.cell-status-error .out_prompt_bg {
   background-color: #ffc0cb;
 }
 
-.cell-status-inqueue .jp-InputPrompt,
-.cell-status-inqueue .jp-OutputPrompt {
+.jp-CodeCell.cell-status-inqueue .jp-InputPrompt,
+.jp-CodeCell.cell-status-inqueue .jp-OutputPrompt,
+.jp-CodeCell.cell-status-inqueue:not(.jp-mod-active) .jp-Collapser,
+.jp-CodeCell.cell-status-inqueue .out_prompt_bg {
   background-color: #e0ffff;
 }
 
+.jp-Notebook .jp-CodeCell:not(.jp-mod-active) .jp-Collapser {
+  opacity: var(--jp-cell-prompt-not-active-opacity);
+}
+
+.jp-Notebook .jp-CodeCell:not(.jp-mod-active) .out_prompt_bg {
+  opacity: var(--jp-cell-prompt-not-active-opacity);
+}
+
 .multi-output-container.ui-tabs {
-  border: none;
+  border: none !important;
   padding: 0px;
 }
 
@@ -84,7 +124,7 @@
 }
 
 .multi-output-tabs .ui-tabs-anchor {
-  font-size: 0.6em;
+  font-size: calc(var(--jp-code-font-size) * 0.8);
 }
 
 .multi-output-tabs .ui-tabs-nav {

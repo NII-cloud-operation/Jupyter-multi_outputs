@@ -5,6 +5,7 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
+import { ITranslator } from '@jupyterlab/translation';
 
 import 'jquery-ui/ui/widgets/tabs';
 import 'jquery-ui/ui/widgets/button';
@@ -26,21 +27,26 @@ Object.keys(diff).forEach(key => {
 const plugin: JupyterFrontEndPlugin<void> = {
   id: pluginId,
   autoStart: true,
-  requires: [ICommandPalette, INotebookTracker, ISettingRegistry],
+  requires: [ICommandPalette, INotebookTracker, ISettingRegistry, ITranslator],
   activate: (
     app: JupyterFrontEnd,
     palette: ICommandPalette,
     notebooks: INotebookTracker,
-    settings: ISettingRegistry
+    settings: ISettingRegistry,
+    translator: ITranslator
   ) => {
     console.debug('JupyterLab extension lc_multi_outputs is activated!');
+    const trans = translator.load('lc_multi_outputs');
 
     useSettings(settings);
     useColorPrompt();
     useOutputTabs();
-    registerCommands(app, notebooks, palette);
+    registerCommands(app, trans, notebooks, palette);
 
-    app.docRegistry.addWidgetExtension('Notebook', new OutputTabExtension());
+    app.docRegistry.addWidgetExtension(
+      'Notebook',
+      new OutputTabExtension(trans)
+    );
   }
 };
 

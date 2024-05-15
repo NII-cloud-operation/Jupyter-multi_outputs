@@ -2,6 +2,7 @@ import React from 'react';
 import { ReactWidget, UseSignal } from '@jupyterlab/apputils';
 import { OutputTabs } from './components/OutputTabs';
 import { CodeCell } from '@jupyterlab/cells';
+import { TranslationBundle } from '@jupyterlab/translation';
 import {
   getOutputTabIndex,
   selectCurrentOutputTab,
@@ -15,15 +16,19 @@ import { showOutputAreaDiffDialog } from './showOutputAreaDiffDialog';
 import $ from 'jquery';
 
 export class OutputTabsWidget extends ReactWidget {
-  constructor(private cell: CodeCell) {
+  constructor(
+    private trans: TranslationBundle,
+    private cell: CodeCell
+  ) {
     super();
+    this.addClass('multi-output-widget');
   }
 
   render(): JSX.Element {
     return (
       <UseSignal signal={this.cell.model.metadataChanged}>
         {(_, args) => {
-          const tabs = createTabs(this.cell);
+          const tabs = createTabs(this.trans, this.cell);
           if (args && args.key === 'scrolled') {
             // スクロールの変更の場合は最初のタブを選択状態にする
             selectCurrentOutputTab(this.cell.model);
@@ -132,7 +137,7 @@ function outputAreaWithMergeButton(
   return outputArea;
 }
 
-function createTabs(cell: CodeCell) {
+function createTabs(trans: TranslationBundle, cell: CodeCell) {
   return [
     {
       name: 'output-current',
@@ -152,7 +157,12 @@ function createTabs(cell: CodeCell) {
           name: `output-${output.execution_count}`,
           label: `Out [${output.execution_count}]`,
           outputNode: outputAreaWithMergeButton(outputArea, () => {
-            showOutputAreaDiffDialog(cell, output.execution_count, outputArea);
+            showOutputAreaDiffDialog(
+              trans,
+              cell,
+              output.execution_count,
+              outputArea
+            );
           }).node,
           onClose: () => {
             removePinnedOutput(cell, output.execution_count);

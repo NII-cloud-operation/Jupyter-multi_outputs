@@ -56,7 +56,11 @@
     "stylelint:check": "stylelint --cache \"style/**/*.css\"",
     "watch": "run-p watch:src watch:labextension",
     "watch:labextension": "jupyter labextension watch .",
-    "watch:src": "tsc -w"
+    "watch:src": "tsc -w",
+    "prepare:translations": "pip install jupyterlab-translate && jlpm extract:translations && jlpm update:translations && jlpm compile:translations",
+    "extract:translations": "jupyterlab-translate extract . lc_multi_outputs",
+    "update:translations": "jupyterlab-translate update . lc_multi_outputs -l ja_JP",
+    "compile:translations": "jupyterlab-translate compile . lc_multi_outputs -l ja_JP"
   },
   "dependencies": {
     "@jupyterlab/application": "^4.0.3",
@@ -69,6 +73,7 @@
     "@jupyterlab/outputarea": "^4.0.3",
     "@jupyterlab/rendermime": "^4.0.3",
     "@jupyterlab/settingregistry": "^4.0.3",
+    "@jupyterlab/translation": "^4.0.3",
     "@jupyterlab/ui-components": "^4.0.3",
     "@lumino/algorithm": "^2.0.0",
     "@lumino/commands": "^2.0.1",
