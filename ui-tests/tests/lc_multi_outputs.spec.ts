@@ -6,25 +6,11 @@ function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// https://github.com/jupyterlab/jupyterlab/blob/9844a6fdb680aeae28a4d6238433f751ce5a6204/galata/src/fixtures.ts#L319-L336
-async function myWaitForApplication({ baseURL }, use) {
-  const waitIsReady = async (
-    page: Page,
-    helpers: IJupyterLabPage
-  ): Promise<void> => {
-    await page.waitForSelector('#jupyterlab-splash', {
-      state: 'detached'
-    });
-    //! not wait for launcher tab.
-  };
-  await use(waitIsReady);
-}
-
 /**
  * Don't load JupyterLab webpage before running the tests.
  * This is required to ensure we capture all log messages.
  */
-test.use({ autoGoto: false, waitForApplication: myWaitForApplication });
+test.use({ autoGoto: false });
 test('should emit an activation console message', async ({ page }) => {
   const logs: string[] = [];
 
@@ -41,12 +27,15 @@ test('should emit an activation console message', async ({ page }) => {
   ).toHaveLength(1);
 });
 
-test.use({ autoGoto: true, waitForApplication: myWaitForApplication });
+test.use({ autoGoto: true });
 test('should save current outputs on clicking the pin button', async ({
   page
 }) => {
   // create new notebook
-  await page.notebook.createNew();
+  const fileName = "multi_outputs_test.ipynb";
+  await page.notebook.createNew(fileName);
+  await page.waitForSelector(`[role="main"] >> text=${fileName}`);
+
   // edit
   await page.notebook.setCell(0, 'code', 'print("test")');
   // run

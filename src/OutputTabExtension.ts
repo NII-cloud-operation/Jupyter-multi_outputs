@@ -58,6 +58,11 @@ function initCell(trans: TranslationBundle, cell: CodeCell) {
 }
 
 function initOutputTabs(trans: TranslationBundle, cell: CodeCell) {
+  // Remove the old widget if the cell already has the widget
+  const oldWidget = cell.node.querySelector('.multi-output-widget');
+  if (oldWidget) {
+    oldWidget.remove();
+  }
   Widget.attach(new OutputTabsWidget(trans, cell), cell.node);
 }
 
