@@ -194,21 +194,24 @@ define([
 
     function create_pin_button(cell, output_area)
     {
-        var container = $('<div/>')
-                    .addClass('multi-outputs-ui')
-                    .appendTo(output_area.wrapper.find('.out_prompt_overlay'));
+        var disable_pins = cell.metadata.disable_pins
+        if (disable_pins === undefined || disable_pins === false ) {
+            var container = $('<div/>')
+                        .addClass('multi-outputs-ui')
+                        .appendTo(output_area.wrapper.find('.out_prompt_overlay'));
 
-        var btn = $('<div/>')
-                    .addClass('buttons')
-                    .append('<button class="btn btn-default"/>')
-                    .appendTo(container);
+            var btn = $('<div/>')
+                        .addClass('buttons')
+                        .append('<button class="btn btn-default"/>')
+                        .appendTo(container);
 
-        var clickable = btn.find('button');
-        $('<i class="fa fa-fw fa-thumb-tack"/>').appendTo(clickable);
-        clickable.on('click', function (event) {
-            pin_output(cell);
-            return false;
-        });
+            var clickable = btn.find('button');
+            $('<i class="fa fa-fw fa-thumb-tack"/>').appendTo(clickable);
+            clickable.on('click', function (event) {
+                pin_output(cell);
+                return false;
+            });
+        }
     }
 
     function create_diff_button(cell, pinned_output) {
