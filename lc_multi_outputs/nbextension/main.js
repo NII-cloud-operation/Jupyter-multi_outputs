@@ -1,7 +1,7 @@
 require.config({
     map: {
         '*': {
-            "diff_match_patch": "nbextensions/multi_outputs/lib/diff_match_patch"
+            "diff_match_patch": "nbextensions/lc_multi_outputs/lib/diff_match_patch"
         },
     },
 });

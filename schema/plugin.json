@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "title": "LC Multi Outputs",
+  "properties": {
+    "maxPinnedOutputs": {
+      "type": "integer",
+      "title": "Max Pinned Outputs",
+      "default": 5
+    }
+  },
+  "additionalProperties": false
+}

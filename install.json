@@ -1,0 +1,5 @@
+{
+  "packageManager": "python",
+  "packageName": "lc_multi_outputs",
+  "uninstallInstructions": "Use your Python package manager (pip, conda, etc.) to uninstall the package lc_multi_outputs"
+}
