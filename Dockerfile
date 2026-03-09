@@ -1,6 +1,11 @@
-FROM jupyter/scipy-notebook:latest
+FROM quay.io/jupyter/scipy-notebook:notebook-7.5.0
 
 USER root
+
+### instaill Node.js v20.x because Node.js is not installed with quay.io/jupyter/scipy-notebook
+RUN apt-get update && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+  && apt-get install -y nodejs \
+  && npm install -g yarn
 
 ### extensions for jupyter
 COPY . /tmp/multi_outputs
