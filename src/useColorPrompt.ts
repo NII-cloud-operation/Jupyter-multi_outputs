@@ -1,4 +1,4 @@
-import { Cell, ICellModel } from '@jupyterlab/cells';
+import { Cell, CodeCell, ICellModel } from '@jupyterlab/cells';
 import { NotebookActions } from '@jupyterlab/notebook';
 
 export function useColorPrompt(): void {
@@ -7,6 +7,17 @@ export function useColorPrompt(): void {
   });
 
   NotebookActions.executed.connect((_, { cell, success }) => {
+    const execCount =
+      cell.model.type === 'code'
+        ? (cell as CodeCell).model.executionCount
+        : null;
+    // Skip cells that were not actually executed:
+    // - Cells skipped after an error during multi-cell execution
+    // - Non-code cells (e.g., Markdown) which always have executionCount === null
+    if (execCount === null) {
+      resetCellStatus(cell);
+      return;
+    }
     setCellResult(cell, success);
   });
 }
