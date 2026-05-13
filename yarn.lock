@@ -9233,11 +9233,11 @@ __metadata:
   linkType: hard
 
 "systeminformation@npm:^5.8.6":
-  version: 5.31.3
-  resolution: "systeminformation@npm:5.31.3"
+  version: 5.31.6
+  resolution: "systeminformation@npm:5.31.6"
   bin:
     systeminformation: lib/cli.js
-  checksum: 3dbc7873f5f47c4e7fac36dd33e6fc165852841b137118f112c79cc25b271762574670d4256a809e5ee3266fde17c42d27f9a0813f0088fdcadbd527c97f169d
+  checksum: 9b45b16026730f1b7ad98b5c7b0de990504e495e0557869ad3a0fbd7bb1dcacf217aa342283b8a88a2f31509d0bcf473b8dcb8932dcca420ad73405f78537e8b
   conditions: (os=darwin | os=linux | os=win32 | os=freebsd | os=openbsd | os=netbsd | os=sunos | os=android)
   languageName: node
   linkType: hard
